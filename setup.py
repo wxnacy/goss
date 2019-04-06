@@ -12,9 +12,9 @@ from shutil import rmtree
 from setuptools import find_packages, setup, Command
 
 # Package meta-data.
-NAME = 'gos'
+NAME = 'goss'
 DESCRIPTION = 'Github Object Storage'
-URL = 'https://github.com/wxnacy/gos'
+URL = 'https://github.com/wxnacy/goss'
 EMAIL = 'wxnacy@gmail.com'
 AUTHOR = 'wxnacy'
 REQUIRES_PYTHON = '>=3.5.0'
