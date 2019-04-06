@@ -39,16 +39,28 @@ def create(filepath, path=None):
     '''
     创建文件
     '''
-    #  g = Github()
-    click.echo('Begin upload\t: {}'.format(filepath))
-    click.echo('Create to\t: https://github.com/{}/{}'.format(owner, repo))
+    if not path:
+        path = os.path.basename(filepath)
+    click.echo('{}\t\t: {}'.format(click.style('Upload', fg='yellow'), filepath))
+    click.echo('{}\t\t: https://github.com/{}/{}/{}'.format(
+        click.style("To", fg='yellow'),
+        owner, repo, path))
+    download_url = 'https://raw.githubusercontent.com/{}/{}/master/{}'.format(
+        owner, repo, path
+    )
+    pyperclip.copy(download_url)
+    click.echo('{}\t: {}'.format(
+        click.style('Download url', fg='yellow'),
+        click.style(download_url, fg='blue'),
+    ))
+    click.echo('Now you can use it in content with {}. Wait upload success it will be avaible'.format(
+        click.style('<Ctrl-v>', fg='blue')
+    ))
     res = github.create_from_file(owner, repo, filepath, path)
     res.contents
     cont = res.contents[0]
 
-    click.echo('Success!')
-    click.echo('The download url is\n\n\t{}\n\nYou can use it by <ctrl-v>'.format(cont.download_url))
-    pyperclip.copy(cont.download_url)
+    click.secho('Success!', fg='cyan')
 
 @click.command()
 @click.option('-u', '--user', help='Github user')

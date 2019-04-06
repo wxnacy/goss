@@ -4,11 +4,11 @@
 # Description:
 
 from requests.auth import HTTPBasicAuth
-from os import path
 import json
 import requests
 import base64
 import time
+import os
 
 API_URL = 'https://api.github.com{}'
 ACCEPT = 'application/vnd.github.v3+json'
@@ -29,8 +29,6 @@ class BaseObject(object):
 
 class Content(BaseObject):
     pass
-
-
 
 class Author():
     def __init__(self, name, email):
@@ -56,7 +54,7 @@ class Github():
         https://developer.github.com/v3/repos/contents/#create-a-file
         '''
         if not path:
-            path = path.basename(filepath)
+            path = os.path.basename(filepath)
 
         content = ""
         with open(filepath, 'rb') as f:
