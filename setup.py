@@ -13,7 +13,7 @@ from setuptools import find_packages, setup, Command
 
 # Package meta-data.
 NAME = 'gos'
-DESCRIPTION = 'My short description for my project.'
+DESCRIPTION = 'Github Object Storage'
 URL = 'https://github.com/wxnacy/gos'
 EMAIL = 'wxnacy@gmail.com'
 AUTHOR = 'wxnacy'
