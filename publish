@@ -3,5 +3,5 @@
 TAG_NAME=`./version.py`
 
 ./push_tag "new version"
-python setup.py sdist
+python setup.py sdist bdist_wheel
 twine upload dist/gos-${TAG_NAME}.tar.gz
