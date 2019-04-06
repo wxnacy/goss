@@ -4,7 +4,7 @@
 # Description:
 
 import click
-from gos import Github
+from goss import Github
 import configparser
 import os
 import pyperclip

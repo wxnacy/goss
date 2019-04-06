@@ -3,7 +3,7 @@
 # Author: wxnacy(wxnacy@gmail.com)
 # Description:
 
-from gos import __version__
+from goss import __version__
 
 if __name__ == "__main__":
     print(__version__.__version__)
