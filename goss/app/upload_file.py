@@ -5,6 +5,7 @@
 
 import click
 from goss import Github
+from goss.app import utils
 import configparser
 import os
 import pyperclip
@@ -12,6 +13,34 @@ import pyperclip
 github = None
 owner = None
 repo = None
+
+GOSS_CONFIG_HOME = '{}/.config/goss'.format(os.getenv("HOME"))
+GOSS_CONFIG_PATH = '{}/config'.format(GOSS_CONFIG_HOME)
+GOSS_CREDENTIAL_PATH = '{}/credentials'.format(GOSS_CONFIG_HOME)
+
+def init_git_config():
+    '''初始化 git 信息'''
+    #  if not os.path.exists(GOSS_CONFIG_HOME):
+        #  os.mkdir(GOSS_CONFIG_HOME)
+    credential_path = GOSS_CREDENTIAL_PATH
+
+    config_path = GOSS_CONFIG_PATH
+
+    if not os.path.exists(GOSS_CREDENTIAL_PATH):
+        return None, ''
+
+    credential = configparser.ConfigParser()
+    credential.read(credential_path)
+    default_cred = credential['default']
+
+    g = Github(default_cred['user'], default_cred['password'])
+
+    config = configparser.ConfigParser()
+    config.read(config_path)
+    author = config['user']
+    g.set_author(author['name'], author['email'])
+
+    return g
 
 def generate_github():
     config_path = '{}/.config/gos/config'.format(os.getenv("HOME"))
@@ -35,12 +64,17 @@ def generate_github():
     owner = config['repository']['owner']
     repo = config['repository']['repo']
 
-def create(filepath, path=None):
+def create(filepath, path=None, repo=None, yes=False):
     '''
     创建文件
     '''
     if not path:
         path = os.path.basename(filepath)
+
+    config = configparser.ConfigParser()
+    config.read(GOSS_CONFIG_PATH)
+    if not repo:
+        repo = config['repository']['repo']
     click.echo('{}\t\t: {}'.format(click.style('Upload', fg='yellow'), filepath))
     click.echo('{}\t\t: https://github.com/{}/{}/{}'.format(
         click.style("To", fg='yellow'),
@@ -56,24 +90,46 @@ def create(filepath, path=None):
     click.echo('Now you can use it in content with {}. Wait upload success it will be avaible'.format(
         click.style('<Ctrl-v>', fg='blue')
     ))
-    res = github.create_from_file(owner, repo, filepath, path)
-    res.contents
-    cont = res.contents[0]
+    utils.print_progress()
+    g = init_git_config()
+    code, data = g.create_from_file(owner, repo, filepath, path)
 
-    click.secho('Success!', fg='cyan')
+    if code == 422 and data.get("message") == \
+            'Invalid request.\n\n"sha" wasn\'t supplied.':
+        if not yes:
+            if not click.confirm('This file is exists. Do you want tu replace?'):
+                return
+        else:
+            click.echo('{} {}'.format(
+                utils.make_error_msg('Waring!'),
+                utils.make_progress_msg('This file is exists. And now replace it.')
+                    ))
+
+        utils.print_progress()
+        code, data = g.get_file(owner, repo, path)
+        sha = data['sha']
+        code, data = g.create_from_file(owner, repo, filepath, path, sha)
+
+        if code != 200:
+            utils.print_error(data['message'])
+            return
+    utils.print_success()
 
 @click.command()
 @click.option('-u', '--user', help='Github user')
 #  @click.option('--owner', help='Github repository owner')
-#  @click.option('--repo', help='Github repository name')
+@click.option('--repo', '-r', help='Github repository name')
 @click.option('--path', help='Github repository file path')
+@click.option('--yes', '-y', is_flag = True, default = False, help='Is anwer yes?')
 @click.argument('filepath', type=click.Path(exists=True))
-def run(filepath, user, path):
+#  @click.confirmation_option(prompt='Are you sure you want to drop the db?')
+def run(filepath, user, path, repo, yes):
     '''
     Github Object Storage
     '''
     generate_github()
-    create(filepath, path)
+
+    create(filepath, path, repo, yes)
     pass
 
 if __name__ == "__main__":

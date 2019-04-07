@@ -111,7 +111,10 @@ setup(
     # py_modules=['mypackage'],
 
     entry_points={
-        'console_scripts': ['goss=goss.app.upload_file:run'],
+        'console_scripts': [
+            'goss=goss.app.upload_file:run',
+            'gosscli=goss.app.run:run'
+        ],
     },
     install_requires=REQUIRED,
     extras_require=EXTRAS,
