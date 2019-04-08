@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
+# https://github.com/kennethreitz/setup.py/blob/master/setup.py
 
 # Note: To use the 'upload' functionality of this file, you must:
 #   $ pip install twine
@@ -113,7 +114,7 @@ setup(
     entry_points={
         'console_scripts': [
             'goss=goss.app.upload_file:run',
-            'gosscli=goss.app.run:run'
+            'goss-cli=goss.app.run:run'
         ],
     },
     install_requires=REQUIRED,
@@ -127,6 +128,8 @@ setup(
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
+        'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: Implementation :: CPython',
         'Programming Language :: Python :: Implementation :: PyPy'
     ],

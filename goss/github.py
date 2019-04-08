@@ -50,12 +50,19 @@ class Github():
     def set_author(self, name, email):
         self.author = Author(name, email)
 
+    def get_user_info(self):
+        '''
+        获取用户信息
+        '''
+        url = '/user'
+        self._get(url)
+        return self.response.status_code, self.response.json()
+
     def get_file(self, owner, repository, path, ref='master'):
         '''
         获取文件
         https://developer.github.com/v3/repos/contents/#get-contents
         '''
-
         url = '/repos/{}/{}/contents/{}'.format(owner, repository, path)
         self._get(url, ref=ref)
         is_success = self.response.status_code == 200
