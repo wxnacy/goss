@@ -44,7 +44,10 @@ def run(ctx):
             default_cred = cred['default']
             user = default_cred['user']
             password = default_cred['password']
-            ctx.obj = Github(user, password)
+
+            g = Github(user, password)
+            g.set_owner(default_cred['owner'])
+            ctx.obj = g
 
 def init_credentials_path():
     if not os.path.exists(GOSS_CONFIG_HOME):
@@ -99,40 +102,140 @@ def login(ctx, user, password, yes):
     logger.info('Email :', email)
 
 
+#  @run.command()
+#  @click.option('--repo', '-r', is_flag = True, help = 'To create repository')
+#  @click.option('--name', '-n', required = True, help = 'Create object name')
+#  @click.option('--orga', '-o', help = 'If want create organization repository. Is required')
+#  @click.pass_context
+#  def create(ctx, repo, name, orga):
+    #  g = ctx.obj
+    #  if not g:
+        #  click.echo('You have not logged in yet, please go to goss-cli login to login')
+        #  click.echo('You have not logged in yet, please go to goss-cli login to login')
+        #  click.echo('You have not logged in yet, please go to goss-cli login to login')
+        #  ctx.exit()
+    #  if repo:
+        #  click.echo('Begin create repository')
+        #  click.echo('{}\t: https://github.com/{}/{}'.format(
+            #  utils.make_progress_msg('Url'), name, name))
+        #  click.secho('Waiting...', fg='yellow')
+        #  if orga:
+            #  flag, data = g.create_organization_repository(orga, name)
+        #  else:
+            #  flag, data = g.create_repository(name)
+        #  if not flag:
+            #  utils.print_error(data['message'])
+            #  for err in data['errors']:
+                #  utils.print_error('\t' + err['message'])
+        #  else:
+            #  utils.print_success()
+
 @run.command()
-@click.option('--repo', '-r', is_flag = True, help = 'To create repository')
-@click.option('--name', '-n', required = True, help = 'Create object name')
+@click.option('--method', '-m', default = 'GET',
+    help = 'GET/POST/PUT/DELETE for repository. Default is GET')
 @click.option('--orga', '-o', help = 'If want create organization repository. Is required')
+@click.argument('name', required = False)
 @click.pass_context
-def create(ctx, repo, name, orga):
+def repo(ctx, name, orga, method):
+    '''
+    Get/Create your repositorys
+    '''
     g = ctx.obj
     if not g:
-        click.echo('You have not logged in yet, please go to goss-cli login to login')
-        click.echo('You have not logged in yet, please go to goss-cli login to login')
-        click.echo('You have not logged in yet, please go to goss-cli login to login')
+        click.echo('You have not logged in yet, please run goss-cli to login')
         ctx.exit()
 
-    if repo:
-        click.echo('Begin create repository')
-        click.echo('{}\t: https://github.com/{}/{}'.format(
-            utils.make_progress_msg('Url'), name, name))
-        click.secho('Waiting...', fg='yellow')
-        if orga:
-            flag, data = g.create_organization_repository(orga, name)
-        else:
-            flag, data = g.create_repository(name)
-        if not flag:
-            utils.print_error(data['message'])
-            for err in data['errors']:
-                utils.print_error('\t' + err['message'])
-        else:
+    owner = orga if orga else g.owner
+
+    def print_repo_detail(r):
+        '''打印单个 repository'''
+        #  click.secho('*' * 60, fg='yellow')
+        id_text = click.style('Id', fg='red')
+        click.echo('{}     : {}'.format(utils.make_error_msg('Id'), r['id']))
+        click.echo('{}   : {}'.format(utils.make_error_msg('Name'), r['name']))
+        click.echo('{}  : {}'.format(utils.make_error_msg('Owner'),
+            r['owner']['login']))
+        click.echo('{}    : {}'.format(utils.make_error_msg('Url'),
+            r['html_url']))
+        click.echo('{}   : {}'.format(utils.make_error_msg('Desc'),
+            r['description']))
+        #  click.echo('{} : {}'.format('Detail', r['url']))
+        click.echo('More details see: {}'.format(click.style(r['url'], fg='blue')))
+        #  click.secho('*' * 60, fg='yellow')
+
+    method = method.lower()
+    if method == 'get':     # 处理 get 请求
+        if name:            # 获取单个 repository
+            logger.info('Query repository {}/{}'.format(owner, name))
+            logger.info('Waiting...')
+            code, repo = g.get_repository(owner, name)
+            if code != 200:
+                utils.print_failed()
+                logger.error(repo.get("message"))
+                ctx.exit()
+            print_repo_detail(repo)
             utils.print_success()
+            ctx.exit()
+
+        # 获取全部 repositorys
+        logger.info('Query your repositorys.')
+        logger.info('Waiting...')
+        code, repos = g.get_owner_repositorys()
+        click.secho('id\tname\tfull_name\turl', fg='cyan')
+        click.secho('-' * 60, fg='yellow')
+        for r in repos:
+            click.echo('{}\t{}\t{}\t{}'.format(r['id'], r['name'],
+                r['full_name'], r['html_url']))
+        click.secho('-' * 60, fg='yellow')
+        click.secho('Total : {}'.format(len(repos)))
+        ctx.exit()
+    elif method == 'post':
+        logger.info("Create repository")
+        logger.info("Url : https://github.com/{}/{}".format(owner, name))
+        logger.info('Waiting...')
+        code, data = g.create_repository(name)
+        if code == 201:
+            utils.print_success()
+        else:
+            utils.print_failed()
+            logger.error(data.get("message"))
+    elif method == 'delete':
+        logger.info("Delete repository")
+        logger.info("Url : https://github.com/{}/{}".format(owner, name))
+        logger.info('Waiting...')
+        code, data = g.delete_repository(owner, name)
+        if code == 204:
+            utils.print_success()
+        else:
+            utils.print_failed()
+            logger.error(data.get("message"))
+
+
+
+    #  if repo:
+        #  click.echo('Begin create repository')
+        #  click.echo('{}\t: https://github.com/{}/{}'.format(
+            #  utils.make_progress_msg('Url'), name, name))
+        #  click.secho('Waiting...', fg='yellow')
+        #  if orga:
+            #  flag, data = g.create_organization_repository(orga, name)
+        #  else:
+            #  flag, data = g.create_repository(name)
+        #  if not flag:
+            #  utils.print_error(data['message'])
+            #  for err in data['errors']:
+                #  utils.print_error('\t' + err['message'])
+        #  else:
+            #  utils.print_success()
 
 @run.command()
 @click.argument('name', required = False)
 @click.argument('value', required = False)
 @click.pass_context
 def config(ctx, name, value):
+    '''
+    Get/Create/Update goss config
+    '''
     if name and value and '.' in name:
         names = name.split('.')
         section = names[0]
@@ -150,7 +253,6 @@ def config(ctx, name, value):
         for k, v in kv.items():
             click.echo('    {} = {}'.format(k, v))
 
-    pass
 
 if __name__ == "__main__":
     run()

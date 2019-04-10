@@ -50,12 +50,15 @@ class Github():
     def set_author(self, name, email):
         self.author = Author(name, email)
 
+    def set_owner(self, owner):
+        self.owner = owner
+
     def get_user_info(self):
         '''
         获取用户信息
         '''
         url = '/user'
-        self._get(url)
+        self._request('get', url)
         return self.response.status_code, self.response.json()
 
     def get_file(self, owner, repository, path, ref='master'):
@@ -64,7 +67,7 @@ class Github():
         https://developer.github.com/v3/repos/contents/#get-contents
         '''
         url = '/repos/{}/{}/contents/{}'.format(owner, repository, path)
-        self._get(url, ref=ref)
+        self._request('get', url, ref=ref)
         is_success = self.response.status_code == 200
         return is_success, self.response.json()
 
@@ -92,7 +95,7 @@ class Github():
             }
         if sha:
             data['sha'] = sha
-        self._put(url, **data)
+        self._request('put', url, **data)
         return self.response.status_code, self.response.json()
 
     def create_repository(self, name, description="", homepage="",
@@ -105,9 +108,8 @@ class Github():
         all_args = locals()
         url = '/user/repos'
         all_args.pop('self')
-        self._post(url, **all_args)
-        success = self.response.status_code == 201
-        return success, self.response.json()
+        self._request('post', url, **all_args)
+        return self.response.status_code, self.response.json()
 
     def create_organization_repository(self, organization, name,
             description="", homepage="", private=False, has_issues = True,
@@ -119,42 +121,58 @@ class Github():
         all_args = locals()
         url = '/orgs/{}/repos'.format(organization)
         all_args.pop('self')
-        self._post(url, **all_args)
+        self._request('post', url, **all_args)
         success = self.response.status_code == 201
         return success, self.response.json()
 
-    def _get(self, url, **kw):
-        res = requests.get(
-            API_URL.format(url),
-            params=kw,
-            headers={"Accept": ACCEPT},
-            auth=HTTPBasicAuth(self.user, self.password)
-        )
-        #  print(res.status_code)
-        #  print(res.json())
-        self.response = res
+    def delete_repository(self, owner, repo):
+        '''
+        删除 repository
+        https://developer.github.com/v3/repos/#delete-a-repository
+        '''
+        url = '/repos/{}/{}'.format(owner, repo)
+        self._request('delete', url)
+        code = self.response.status_code
+        return code, self.response.json() if code != 204 else None
 
-    def _put(self, url, **kw):
-        res = requests.put(
-            API_URL.format(url),
-            json=kw,
-            headers={"Accept": ACCEPT},
-            auth=HTTPBasicAuth(self.user, self.password)
-        )
-        #  print(res.status_code)
-        #  print(res.json())
-        self.response = res
+    def get_owner_repositorys(self):
+        '''
+        获取当前用户的 repository 列表
+        https://developer.github.com/v3/repos/#list-your-repositories
+        '''
+        url = '/user/repos'
+        self._request('get', url)
+        return self.response.status_code, self.response.json()
 
-    def _post(self, url, **kw):
-        res = requests.post(
-            API_URL.format(url),
-            json=kw,
+    def get_repository(self, owner, repo):
+        '''
+        获取 repository 详情
+        https://developer.github.com/v3/repos/#get
+        '''
+        url = '/repos/{}/{}'.format(owner, repo)
+        self._request('get', url)
+        return self.response.status_code, self.response.json()
+
+    def _request(self, method, url, **kw):
+        data = {}
+        if method in ('put', 'post'):
+            data['json'] = kw
+        elif method in ('get',):
+            data['params'] = kw
+
+        req_data = dict(
+            method = method,
+            url = API_URL.format(url),
             headers={"Accept": ACCEPT},
-            auth=HTTPBasicAuth(self.user, self.password)
+            auth=HTTPBasicAuth(self.user, self.password),
         )
+        if data:
+            req_data.update(data)
+        #  print(req_data)
+        res = requests.request(**req_data)
         self.response = res
         #  print(res.status_code)
-        #  print(res.json())
+        #  print(res.content)
 
 if __name__ == "__main__":
     config_path = '{}/.config/gos/config'.format(os.getenv("HOME"))
@@ -178,5 +196,6 @@ if __name__ == "__main__":
 
     #  g.create_repository('test2')
     #  g.create_organization_repository(, 'test3')
-    g.get_file('wxnacy', 'image', 'push')
+    #  g.get_file('wxnacy', 'image', 'push')
+    g.get_owner_repositorys()
 
