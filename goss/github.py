@@ -4,6 +4,7 @@
 # Description:
 
 from requests.auth import HTTPBasicAuth
+from goss.app.logger import Logger
 import json
 import requests
 import base64
@@ -11,6 +12,8 @@ import time
 import os
 import configparser
 import sys
+
+logger = Logger()
 
 API_URL = 'https://api.github.com{}'
 ACCEPT = 'application/vnd.github.v3+json'
@@ -43,6 +46,7 @@ class Response(BaseObject):
     pass
 
 class Github():
+    debug = False
     def __init__(self, user, password):
         self.user = user
         self.password = password
@@ -52,6 +56,9 @@ class Github():
 
     def set_owner(self, owner):
         self.owner = owner
+
+    def set_debug(self, debug: bool):
+        self.debug = debug
 
     def get_user_info(self):
         '''
@@ -68,12 +75,31 @@ class Github():
         '''
         url = '/repos/{}/{}/contents/{}'.format(owner, repository, path)
         self._request('get', url, ref=ref)
-        is_success = self.response.status_code == 200
-        return is_success, self.response.json()
+        #  is_success = self.response.status_code == 200
+        return self.response.status_code, self.response.json()
+
+    def delete_file(self, owner, repository, path, sha, branch='master'):
+        '''
+        删除文件
+        https://developer.github.com/v3/repos/contents/#delete-a-file
+        '''
+        url = '/repos/{}/{}/contents/{}'.format(owner, repository, path)
+        data = {
+            "message": "Delete {}".format(path),
+            "committer": {
+                "name": self.author.name,
+                "email": self.author.email
+                },
+            "sha": sha,
+            "branch": branch
+        }
+        self._request('delete', url, **data)
+        return self.response.status_code, self.response.json()
 
     def create_from_file(self, owner, repository, filepath, path=None, sha=None):
         '''
         创建文件
+@click.option('--repo', '-r', required = True, help = 'Repository name')
         https://developer.github.com/v3/repos/contents/#create-a-file
         '''
         if not path:
@@ -155,9 +181,9 @@ class Github():
 
     def _request(self, method, url, **kw):
         data = {}
-        if method in ('put', 'post'):
+        if method in ('put', 'post', 'delete'):
             data['json'] = kw
-        elif method in ('get',):
+        elif method in ('get'):
             data['params'] = kw
 
         req_data = dict(
@@ -168,11 +194,14 @@ class Github():
         )
         if data:
             req_data.update(data)
-        #  print(req_data)
         res = requests.request(**req_data)
         self.response = res
-        #  print(res.status_code)
-        #  print(res.content)
+        if self.debug:
+            logger.debug("Response code {}".format(res.status_code))
+            if res.status_code:
+                logger.debug("Response data\n{}".format(
+                    json.dumps(self.response.json(), indent=4)))
+
 
 if __name__ == "__main__":
     config_path = '{}/.config/gos/config'.format(os.getenv("HOME"))

@@ -87,6 +87,7 @@ def create(filepath, path=None, repo=None, yes=False):
         code, data = g.create_from_file(owner, repo, filepath, path, sha)
 
         if code != 200:
+            utils.print_failed()
             utils.print_error(data['message'])
             return
     utils.print_success()

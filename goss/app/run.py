@@ -12,6 +12,7 @@ import configparser
 import os
 import pyperclip
 import json
+import base64
 
 GOSS_CONFIG_HOME = '{}/.config/goss'.format(os.getenv("HOME"))
 GOSS_CONFIG_PATH = '{}/config'.format(GOSS_CONFIG_HOME)
@@ -27,10 +28,11 @@ def print_version(ctx, param, value):
     ctx.exit()
 
 @click.group()
-@click.option('--version', is_flag=True, callback=print_version,
-              expose_value=False, is_eager=True)
+@click.option('--version', '-v', is_flag=True, callback=print_version,
+              expose_value=False, is_eager=True, help='Show the version')
+@click.option('--debug', '-d', is_flag=True, default=False, help='Run in debug')
 @click.pass_context
-def run(ctx):
+def run(ctx, debug):
     '''
     Github Object Storage
     '''
@@ -47,6 +49,12 @@ def run(ctx):
 
             g = Github(user, password)
             g.set_owner(default_cred['owner'])
+
+            conf = configparser.ConfigParser()
+            conf.read(GOSS_CONFIG_PATH)
+            author = conf['user']
+            g.set_author(author['name'], author['email'])
+            g.set_debug(debug)
             ctx.obj = g
 
 def init_credentials_path():
@@ -101,34 +109,127 @@ def login(ctx, user, password, yes):
     logger.info('Name  :', owner)
     logger.info('Email :', email)
 
+@run.command()
+@click.option('--method', '-m', default = 'GET',
+    help = 'GET/POST/PUT/DELETE for repository. Default is GET')
+@click.option('--orga', '-o', help = 'If want create organization repository. Is required')
+@click.option('--download', '-D', is_flag = True, help = 'Download file')
+@click.option('--output', '-O', help = 'Download name. Default is file name')
+@click.option('--repo', '-r', required = True, help = 'Repository name')
+@click.argument('path', default="/")
+@click.pass_context
+def file(ctx, repo, path, orga, method, download, output):
+    '''
+    Get/Delete/Download your file
 
-#  @run.command()
-#  @click.option('--repo', '-r', is_flag = True, help = 'To create repository')
-#  @click.option('--name', '-n', required = True, help = 'Create object name')
-#  @click.option('--orga', '-o', help = 'If want create organization repository. Is required')
-#  @click.pass_context
-#  def create(ctx, repo, name, orga):
-    #  g = ctx.obj
-    #  if not g:
-        #  click.echo('You have not logged in yet, please go to goss-cli login to login')
-        #  click.echo('You have not logged in yet, please go to goss-cli login to login')
-        #  click.echo('You have not logged in yet, please go to goss-cli login to login')
-        #  ctx.exit()
-    #  if repo:
-        #  click.echo('Begin create repository')
-        #  click.echo('{}\t: https://github.com/{}/{}'.format(
-            #  utils.make_progress_msg('Url'), name, name))
-        #  click.secho('Waiting...', fg='yellow')
-        #  if orga:
-            #  flag, data = g.create_organization_repository(orga, name)
-        #  else:
-            #  flag, data = g.create_repository(name)
-        #  if not flag:
-            #  utils.print_error(data['message'])
-            #  for err in data['errors']:
-                #  utils.print_error('\t' + err['message'])
-        #  else:
-            #  utils.print_success()
+    If you want to upload file. Please use command
+
+        goss <filepath> --repo=<repository-name>
+
+    More usage see : goss --help
+    '''
+    g = ctx.obj
+    if not g:
+        click.echo('You have not logged in yet, please run goss-cli to login')
+        ctx.exit()
+
+    owner = orga if orga else g.owner
+
+    if download:
+        logger.info('Download file')
+        logger.info('Owner\t: {}'.format(owner))
+        logger.info('Repo\t: {}'.format(repo))
+        logger.info('Path\t: {}'.format(path))
+        logger.info('Waiting...')
+        code, data = g.get_file(owner, repo, path)
+        if code != 200:
+            utils.print_failed()
+            logger.error(filedata.get("message"))
+            ctx.exit()
+        name = output or data.get("name")
+        type = data.get("type")
+        if type == 'file':
+            content = data.get("content")
+            byte_data = base64.b64decode(content.encode())
+            with open(name, 'wb') as f:
+                total = len(byte_data)
+                progress = 0
+                step = 10
+                while progress < total:
+                    b = progress
+                    e = b + step
+                    f.write(byte_data[b:e])
+
+                    progress += step
+                    end = '\r'
+                    if progress >= total:
+                        end = '\n'
+                        progress = total
+                    print('{} / {}'.format(progress, total), end=end)
+                f.flush()
+                f.close()
+        utils.print_success()
+        ctx.exit()
+
+    def print_data(data):
+        if isinstance(data, list):
+            click.secho('type\tsize\tpath', fg='magenta')
+            click.secho('-' * 60, fg='green')
+            for f in data:
+                click.echo('{}\t{}\t{}'.format(f['type'], f['size'], f['path']))
+            click.secho('-' * 60, fg='green')
+            click.echo("Total : {}".format(click.style(str(len(data)), fg='cyan')))
+        elif isinstance(data, dict):
+            kv = [
+                ('Path', 'path'),
+                ('Type', 'type'),
+                ('Size', 'size'),
+                ('Sha', 'sha'),
+                ('HtmlUrl', 'html_url'),
+                ('DownUrl', 'download_url'),
+            ]
+            for k, v in kv:
+                click.echo('{}\t: {}'.format(click.style(k, fg='magenta'),
+                    data[v]))
+            click.echo('More details see : {}'.format(click.style(data['url'],
+                fg='blue')))
+
+    method = method.lower()
+    if method == 'get':     # 处理 get 请求
+        logger.info('Query file')
+        logger.info('Owner\t: {}'.format(owner))
+        logger.info('Repo\t: {}'.format(repo))
+        logger.info('Path\t: {}'.format(path))
+        logger.info('Waiting...')
+        code, data = g.get_file(owner, repo, path)
+        if code == 200:
+            #  print(json.dumps(data, indent=4))
+            print_data(data)
+            utils.print_success()
+        else:
+            utils.print_failed()
+            logger.error(data.get("message"))
+    elif method == 'delete':
+        logger.info('Delete file')
+        logger.info('Owner\t: {}'.format(owner))
+        logger.info('Repo\t: {}'.format(repo))
+        logger.info('Path\t: {}'.format(path))
+        logger.info('Waiting...')
+        code, filedata = g.get_file(owner, repo, path)
+        if code != 200:
+            utils.print_failed()
+            logger.error(filedata.get("message"))
+            ctx.exit()
+
+        #  logger.info(json.dumps(filedata, indent=4))
+        sha = filedata.get("sha")
+        code, data = g.delete_file(owner, repo, path, sha)
+        if code != 200:
+            utils.print_failed()
+            logger.error(filedata.get("message"))
+            ctx.exit()
+        utils.print_success()
+
 
 @run.command()
 @click.option('--method', '-m', default = 'GET',
@@ -210,23 +311,6 @@ def repo(ctx, name, orga, method):
             utils.print_failed()
             logger.error(data.get("message"))
 
-
-
-    #  if repo:
-        #  click.echo('Begin create repository')
-        #  click.echo('{}\t: https://github.com/{}/{}'.format(
-            #  utils.make_progress_msg('Url'), name, name))
-        #  click.secho('Waiting...', fg='yellow')
-        #  if orga:
-            #  flag, data = g.create_organization_repository(orga, name)
-        #  else:
-            #  flag, data = g.create_repository(name)
-        #  if not flag:
-            #  utils.print_error(data['message'])
-            #  for err in data['errors']:
-                #  utils.print_error('\t' + err['message'])
-        #  else:
-            #  utils.print_success()
 
 @run.command()
 @click.argument('name', required = False)
