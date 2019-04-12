@@ -34,7 +34,7 @@ def print_version(ctx, param, value):
 @click.pass_context
 def run(ctx, debug):
     '''
-    Github Object Storage
+    Github Object Storage System
     '''
     if not os.path.exists(GOSS_CONFIG_HOME):
         os.mkdir(GOSS_CONFIG_HOME)
