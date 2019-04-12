@@ -61,11 +61,6 @@ def init_credentials_path():
     if not os.path.exists(GOSS_CONFIG_HOME):
         os.mkdir(GOSS_CONFIG_HOME)
 
-    #  if not os.path.exists(GOSS_CREDENTIAL_PATH):
-        #  with open(GOSS_CREDENTIAL_PATH, '+w') as f:
-            #  f.flush()
-            #  f.close()
-
 
 @run.command(help='Log in to the github account')
 @click.option('--user', '-u', prompt='Your Github user', help = 'Your Github user')
@@ -114,11 +109,12 @@ def login(ctx, user, password, yes):
     help = 'GET/POST/PUT/DELETE for repository. Default is GET')
 @click.option('--orga', '-o', help = 'If want create organization repository. Is required')
 @click.option('--download', '-D', is_flag = True, help = 'Download file')
+@click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
 @click.option('--output', '-O', help = 'Download name. Default is file name')
 @click.option('--repo', '-r', required = True, help = 'Repository name')
 @click.argument('path', default="/")
 @click.pass_context
-def file(ctx, repo, path, orga, method, download, output):
+def file(ctx, repo, path, orga, method, download, output, yes):
     '''
     Get/Delete/Download your file
 
@@ -135,6 +131,42 @@ def file(ctx, repo, path, orga, method, download, output):
 
     owner = orga if orga else g.owner
 
+    def _get_progress(progress, total):
+        '''打印进度条'''
+
+        progress_ratio = progress / total
+        progress_len = 20
+        progress_num = int(progress_ratio * 20)
+
+        pro_text = '[{:-20s}] {:.2f}% {} / {}'.format(
+            '=' * progress_num, progress_ratio * 100, progress, total)
+        return pro_text
+
+
+    def _save(p, filepath, content):
+        '''保存文件'''
+        filedir = os.path.dirname(filepath)
+        filename = os.path.dirname(filepath)
+        byte_data = base64.b64decode(content.encode())
+        with open(name, 'wb') as f:
+            total = len(byte_data)
+            progress = 0
+            step = 10
+            while progress < total:
+                b = progress
+                e = b + step
+                f.write(byte_data[b:e])
+
+                progress += step
+                end = '\r'
+                if progress >= total:
+                    end = '\n'
+                    progress = total
+                #  print('{} / {}'.format(progress, total), end=end)
+                print(p, _get_progress(progress, total), end = end)
+            f.flush()
+            f.close()
+
     if download:
         logger.info('Download file')
         logger.info('Owner\t: {}'.format(owner))
@@ -144,42 +176,45 @@ def file(ctx, repo, path, orga, method, download, output):
         code, data = g.get_file(owner, repo, path)
         if code != 200:
             utils.print_failed()
-            logger.error(filedata.get("message"))
+            logger.error(data.get("message"))
             ctx.exit()
         name = output or data.get("name")
         type = data.get("type")
         if type == 'file':
             content = data.get("content")
-            byte_data = base64.b64decode(content.encode())
-            with open(name, 'wb') as f:
-                total = len(byte_data)
-                progress = 0
-                step = 10
-                while progress < total:
-                    b = progress
-                    e = b + step
-                    f.write(byte_data[b:e])
+            _save(path, name, content)
+            #  byte_data = base64.b64decode(content.encode())
+            #  with open(name, 'wb') as f:
+                #  total = len(byte_data)
+                #  progress = 0
+                #  step = 10
+                #  while progress < total:
+                    #  b = progress
+                    #  e = b + step
+                    #  f.write(byte_data[b:e])
 
-                    progress += step
-                    end = '\r'
-                    if progress >= total:
-                        end = '\n'
-                        progress = total
-                    print('{} / {}'.format(progress, total), end=end)
-                f.flush()
-                f.close()
+                    #  progress += step
+                    #  end = '\r'
+                    #  if progress >= total:
+                        #  end = '\n'
+                        #  progress = total
+                    #  print('{} / {}'.format(progress, total), end=end)
+                #  f.flush()
+                #  f.close()
         utils.print_success()
         ctx.exit()
 
     def print_data(data):
-        if isinstance(data, list):
-            click.secho('type\tsize\tpath', fg='magenta')
-            click.secho('-' * 60, fg='green')
+        '''打印文件信息'''
+        if isinstance(data, list):      # 打印列表
+            click.secho('sha\t\t\t\t\t\ttype\tsize\tpath', fg='magenta')
+            click.secho('-' * 100, fg='green')
             for f in data:
-                click.echo('{}\t{}\t{}'.format(f['type'], f['size'], f['path']))
-            click.secho('-' * 60, fg='green')
+                click.echo('{}\t{}\t{}\t{}'.format(
+                    f['sha'], f['type'], f['size'], f['path']))
+            click.secho('-' * 100, fg='green')
             click.echo("Total : {}".format(click.style(str(len(data)), fg='cyan')))
-        elif isinstance(data, dict):
+        elif isinstance(data, dict):    # 打印单个文件
             kv = [
                 ('Path', 'path'),
                 ('Type', 'type'),
@@ -194,6 +229,15 @@ def file(ctx, repo, path, orga, method, download, output):
             click.echo('More details see : {}'.format(click.style(data['url'],
                 fg='blue')))
 
+    def _del_file(path, sha):
+        '''删除单个文件'''
+        code, data = g.delete_file(owner, repo, path, sha)
+        if code != 200:
+            utils.print_failed()
+            logger.error(path, filedata.get("message"))
+            ctx.exit()
+        logger.info(path, 'deleted')
+
     method = method.lower()
     if method == 'get':     # 处理 get 请求
         logger.info('Query file')
@@ -203,7 +247,6 @@ def file(ctx, repo, path, orga, method, download, output):
         logger.info('Waiting...')
         code, data = g.get_file(owner, repo, path)
         if code == 200:
-            #  print(json.dumps(data, indent=4))
             print_data(data)
             utils.print_success()
         else:
@@ -221,13 +264,22 @@ def file(ctx, repo, path, orga, method, download, output):
             logger.error(filedata.get("message"))
             ctx.exit()
 
-        #  logger.info(json.dumps(filedata, indent=4))
-        sha = filedata.get("sha")
-        code, data = g.delete_file(owner, repo, path, sha)
-        if code != 200:
-            utils.print_failed()
-            logger.error(filedata.get("message"))
-            ctx.exit()
+        if isinstance(filedata, list):      # 删除文件夹
+
+            if not yes:                     # 确认是否删除
+                if not click.confirm('The {} is a folder, are you sure to delete?'.format(path)):
+                    ctx.exit()
+            else:
+                logger.warn('The {} is a folder and is now being deleted'.format(path),
+                        with_color=True)
+
+            for f in filedata:
+                _del_file(f['path'], f['sha'])
+
+        elif isinstance(filedata, dict):    # 删除文件
+            sha = filedata.get("sha")
+            _del_file(path, sha)
+
         utils.print_success()
 
 

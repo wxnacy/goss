@@ -93,7 +93,6 @@ def create(filepath, path=None, repo=None, yes=False):
     utils.print_success()
 
 @click.command()
-#  @click.option('--user', help='Github user')
 @click.option('--repo', '-r', help='Github repository name')
 @click.option('--path', '-p', help='Github repository file path')
 @click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
