@@ -78,6 +78,15 @@ class Github():
         #  is_success = self.response.status_code == 200
         return self.response.status_code, self.response.json()
 
+    def get_file_blob(self, owner, repository, sha, ref='master'):
+        '''
+        获取文件内容，超过 1 MB 时
+        https://developer.github.com/v3/git/blobs/#get-a-blob
+        '''
+        url = '/repos/{}/{}/git/blobs/{}'.format(owner, repository, sha)
+        self._request('get', url, ref=ref)
+        return self.response.status_code, self.response.json()
+
     def delete_file(self, owner, repository, path, sha, branch='master'):
         '''
         删除文件

@@ -13,6 +13,7 @@ import os
 import pyperclip
 import json
 import base64
+import requests
 
 GOSS_CONFIG_HOME = '{}/.config/goss'.format(os.getenv("HOME"))
 GOSS_CONFIG_PATH = '{}/config'.format(GOSS_CONFIG_HOME)
@@ -104,6 +105,10 @@ def login(ctx, user, password, yes):
     logger.info('Name  :', owner)
     logger.info('Email :', email)
 
+LARGE_SIZE = 1 * 1024 * 1024
+TOO_LARGE_SIZE = 100 * 1024 * 1024
+
+
 @run.command()
 @click.option('--method', '-m', default = 'GET',
     help = 'GET/POST/PUT/DELETE for repository. Default is GET')
@@ -133,21 +138,23 @@ def file(ctx, repo, path, orga, method, download, output, yes):
 
     def _get_progress(progress, total):
         '''打印进度条'''
-
         progress_ratio = progress / total
         progress_len = 20
         progress_num = int(progress_ratio * 20)
-
-        pro_text = '[{:-20s}] {:.2f}% {} / {}'.format(
+        pro_text = '[{:-<20s}] {:.2f}% {} / {}'.format(
             '=' * progress_num, progress_ratio * 100, progress, total)
         return pro_text
 
 
     def _save(p, filepath, content):
         '''保存文件'''
+        byte_data = base64.b64decode(content.encode())
+        _save_by_bytes(p, filepath, byte_data)
+
+    def _save_by_bytes(p, filepath, byte_data):
+        '''保存文件'''
         filedir = os.path.dirname(filepath)
         filename = os.path.dirname(filepath)
-        byte_data = base64.b64decode(content.encode())
         with open(name, 'wb') as f:
             total = len(byte_data)
             progress = 0
@@ -156,13 +163,11 @@ def file(ctx, repo, path, orga, method, download, output, yes):
                 b = progress
                 e = b + step
                 f.write(byte_data[b:e])
-
                 progress += step
                 end = '\r'
                 if progress >= total:
                     end = '\n'
                     progress = total
-                #  print('{} / {}'.format(progress, total), end=end)
                 print(p, _get_progress(progress, total), end = end)
             f.flush()
             f.close()
@@ -174,33 +179,36 @@ def file(ctx, repo, path, orga, method, download, output, yes):
         logger.info('Path\t: {}'.format(path))
         logger.info('Waiting...')
         code, data = g.get_file(owner, repo, path)
-        if code != 200:
+        if code == 403:         # 文件太大，需要使用其它方式进行下载
+            logger.warn('The file is larger than 1 MB and needs to be downloaded using the download_url.')
+            path_dir = os.path.dirname(path)
+            if not path_dir:
+                path_dir = '/'
+            c, files = g.get_file(owner, repo, path_dir)
+            down_url = ''
+            file_name = []
+            for f in files:
+                if f['path'] == path:
+                    down_url = f['download_url']
+                    file_name = f['name']
+            file_res = requests.get(down_url)
+
+            name = output or file_name
+            _save_by_bytes(path, name, file_res.content)
+            utils.print_success()
+            ctx.exit()
+
+        if code != 200:         # 其他错误直接返回
             utils.print_failed()
             logger.error(data.get("message"))
             ctx.exit()
-        name = output or data.get("name")
         type = data.get("type")
-        if type == 'file':
+        name = output or data.get("name")
+        if isinstance(data, dict):
             content = data.get("content")
             _save(path, name, content)
-            #  byte_data = base64.b64decode(content.encode())
-            #  with open(name, 'wb') as f:
-                #  total = len(byte_data)
-                #  progress = 0
-                #  step = 10
-                #  while progress < total:
-                    #  b = progress
-                    #  e = b + step
-                    #  f.write(byte_data[b:e])
-
-                    #  progress += step
-                    #  end = '\r'
-                    #  if progress >= total:
-                        #  end = '\n'
-                        #  progress = total
-                    #  print('{} / {}'.format(progress, total), end=end)
-                #  f.flush()
-                #  f.close()
+        elif isinstance(data, list):
+            pass
         utils.print_success()
         ctx.exit()
 
