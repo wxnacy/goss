@@ -49,6 +49,8 @@ def create(filepath, path=None, repo=None, yes=False):
     g = init_git_config()
     if not path:
         path = os.path.basename(filepath)
+    if path.endswith('/'):
+        path += os.path.basename(filepath)
 
     config = configparser.ConfigParser()
     config.read(utils.GOSS_CONFIG_PATH)
