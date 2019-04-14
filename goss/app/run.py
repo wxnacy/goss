@@ -234,6 +234,10 @@ def file(ctx, repo, path, orga, method, download, output, yes):
             for k, v in kv:
                 click.echo('{}\t: {}'.format(click.style(k, fg='magenta'),
                     data[v]))
+            pyperclip.copy(data['download_url'])
+            logger.info('Now you can use it with {} and wait for the upload to succeed.'.format(
+                click.style('<Ctrl-v>', fg='blue')
+            ))
             click.echo('More details see : {}'.format(click.style(data['url'],
                 fg='blue')))
 
@@ -355,11 +359,21 @@ def repo(ctx, name, orga, method):
         logger.info("Url : https://github.com/{}/{}".format(owner, name))
         logger.info('Waiting...')
         code, data = g.create_repository(name)
-        if code == 201:
-            utils.print_success()
-        else:
+        if code != 201:
             utils.print_failed()
             logger.error(data.get("message"))
+        logger.info("Create README.md")
+        logger.info("Url : https://github.com/{}/{}/blob/master/README.md".format(owner, name))
+        logger.info('Waiting...')
+        code, data = g.create_file_from_url(owner, name,
+            'https://raw.githubusercontent.com/wxnacy/goss/master/create_readme.md',
+            'README.md')
+        if code != 201:
+            utils.print_failed()
+            logger.error(data.get("message"))
+        utils.print_success()
+
+
     elif method == 'delete':
         logger.info("Delete repository")
         logger.info("Url : https://github.com/{}/{}".format(owner, name))

@@ -105,20 +105,35 @@ class Github():
         self._request('delete', url, **data)
         return self.response.status_code, self.response.json()
 
-    def create_from_file(self, owner, repository, filepath, path=None, sha=None):
+    def create_file_from_url(self, owner, repository, url, path=None, sha=None):
+        '''
+        从 url 创建文件
+        '''
+        res = requests.get(url)
+        byte_data = res.content
+
+        return self._create_file(owner, repository, url, byte_data, path, sha)
+
+    def create_file_from_path(self, owner, repository, filepath, path=None, sha=None):
+        '''
+        从本地创建文件
+        https://developer.github.com/v3/repos/contents/#create-a-file
+        '''
+        byte_data = None
+        with open(filepath, 'rb') as f:
+            byte_data = f.read()
+            f.close()
+        return self._create_file(owner, repository, filepath, byte_data, path, sha)
+
+    def _create_file(self, owner, repository, filepath, byte_data,
+            path = None, sha=None):
         '''
         创建文件
-@click.option('--repo', '-r', required = True, help = 'Repository name')
         https://developer.github.com/v3/repos/contents/#create-a-file
         '''
         if not path:
             path = os.path.basename(filepath)
-
-        content = ""
-        with open(filepath, 'rb') as f:
-            byte_data = f.read()
-            content = base64.b64encode(byte_data).decode()
-
+        content = base64.b64encode(byte_data).decode()
         url = '/repos/{}/{}/contents/{}'.format(owner, repository, path)
         data = {
             "message": "Create file {}".format(path),

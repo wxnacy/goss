@@ -57,23 +57,35 @@ def create(filepath, path=None, repo=None, yes=False):
     if not repo:
         repo = config['repo']['name']
 
-    logger.info('Upload :', filepath)
-    logger.info('Path   :', path)
+    logger.info('Upload file')
+    logger.info('Source\t:', filepath)
+    logger.info('Path\t:', path)
     download_url = 'https://raw.githubusercontent.com/{}/{}/master/{}'.format(
         owner, repo, path
     )
-    logger.info('Url    :', click.style(download_url, fg='blue'))
+    html_url = 'https://github.com/{}/{}/blob/master/{}'.format(
+        owner, repo, path
+    )
+    logger.info('HtmlUrl\t:', html_url)
+    logger.info('DownUrl\t:', click.style(download_url, fg='blue'))
     pyperclip.copy(download_url)
     logger.info('Now you can use it with {} and wait for the upload to succeed.'.format(
         click.style('<Ctrl-v>', fg='blue')
     ))
     logger.info('Waiting...')
-    code, data = g.create_from_file(owner, repo, filepath, path)
+
+    if filepath.startswith('http'):
+        default_create = g.create_file_from_url
+    else:
+        default_create = g.create_file_from_path
+
+    code, data = default_create(owner, repo, filepath, path)
     if code == 404:
         utils.print_failed()
         logger.error('Repository Owner or Name not found', with_color=True)
         return
 
+    # 如果文件已经存在，则询问是否覆盖
     if code == 422 and data.get("message") == \
             'Invalid request.\n\n"sha" wasn\'t supplied.':
         if not yes:
@@ -86,7 +98,7 @@ def create(filepath, path=None, repo=None, yes=False):
         logger.info('Waiting...')
         code, data = g.get_file(owner, repo, path)
         sha = data['sha']
-        code, data = g.create_from_file(owner, repo, filepath, path, sha)
+        code, data = default_create(owner, repo, filepath, path, sha)
 
         if code != 200:
             utils.print_failed()
@@ -98,7 +110,8 @@ def create(filepath, path=None, repo=None, yes=False):
 @click.option('--repo', '-r', help='Github repository name')
 @click.option('--path', '-p', help='Github repository file path')
 @click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
-@click.argument('filepath', type=click.Path(exists=True))
+#  @click.argument('filepath', type=click.Path(exists=True))
+@click.argument('filepath')
 def run(filepath, path, repo, yes):
     '''
     Github Object Storage System
