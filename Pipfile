@@ -9,6 +9,7 @@ verify_ssl = true
 click = "*"
 requests = "*"
 pyperclip = "*"
+gevent = "*"
 
 [requires]
 python_version = "3.7"

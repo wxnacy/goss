@@ -6,6 +6,8 @@
 import click
 import configparser
 import os
+import gevent
+import time
 
 
 GOSS_CONFIG_HOME = '{}/.config/goss'.format(os.getenv("HOME"))
@@ -35,9 +37,56 @@ def config(filepath, section, **data):
     if os.path.exists(filepath):
         conf.read(filepath)
 
+    val = conf[section]
+    if val:
+        data.update(val)
+
     conf[section] = data
 
     with open(filepath, 'w') as f:
         conf.write(f)
         f.close()
+
+is_done = False
+
+def print_dynamic_progress(msg = 'Waiting...'):
+    print('begin progress')
+    gevent.sleep(0)
+    count = 0
+    pl = ('⠸' ,'⠼' ,'⠴' ,'⠦' ,'⠧' ,'⠏' ,'⠙' ,'⠹')
+    while count < 10000:
+        for p in pl:
+            print(f'{p} {msg}', end='\r')
+        count += 1
+    print('Success!       ')
+
+def work():
+    print('begin work')
+    gevent.sleep(0)
+    time.sleep(2)
+    is_done = True
+    print('end work')
+
+class Progress():
+    is_done = False
+    is_waiting = True
+
+    def print_dynamic_progress(self, msg = 'Waiting...'):
+        print('begin progress')
+        pl = ('⠸' ,'⠼' ,'⠴' ,'⠦' ,'⠧' ,'⠏' ,'⠙' ,'⠹')
+        while not self.is_done:
+            print(self.is_done, self.is_waiting)
+            while self.is_waiting:
+                for p in pl:
+                    print(msg)
+                    print(f'{p} {msg}', end='\r')
+        print('Success!       ')
+
+if __name__ == "__main__":
+    #  gevent.joinall([
+        #  gevent.spawn(work),
+        #  gevent.spawn(print_dynamic_progress),
+    #  ])
+    print_dynamic_progress()
+
 

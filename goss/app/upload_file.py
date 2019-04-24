@@ -6,6 +6,7 @@
 import click
 from goss import Github
 from goss.app import utils
+from goss.app.config import goss_config
 from goss.app.logger import Logger
 import configparser
 import os
@@ -48,7 +49,13 @@ def create(filepath, path=None, repo=None, yes=False):
     '''
     g = init_git_config()
     if not path:
+        conf_path = goss_config.get_value('repo', 'path')
+        if conf_path:
+            path = conf_path
+
+    if not path:
         path = os.path.basename(filepath)
+
     if path.endswith('/'):
         path += os.path.basename(filepath)
 
