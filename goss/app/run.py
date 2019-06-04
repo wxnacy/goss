@@ -7,6 +7,7 @@ import click
 from goss import Github
 from goss import __version__
 from goss.app import utils
+from goss.app.config import goss_config
 from goss.app.logger import Logger
 import configparser
 import os
@@ -410,6 +411,49 @@ def config(ctx, name, value):
         kv = conf[sec]
         for k, v in kv.items():
             click.echo('    {} = {}'.format(k, v))
+
+@run.command()
+@click.option('--method', '-m', default = 'GET',
+    help = 'GET/POST/PUT/DELETE for repository. Default is GET')
+@click.option('--orga', '-o', help = 'If want create organization repository. Is required')
+@click.option('--download', '-D', is_flag = True, help = 'Download file')
+@click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
+@click.option('--output', '-O', help = 'Download name. Default is file name')
+@click.option('--repo', '-r', help = 'Repository name. Default use config repo.name')
+@click.argument('path', default="/")
+@click.pass_context
+def release(ctx, repo, path, orga, method, download, output, yes):
+    '''
+    Get/Create/Delete/Download your Release/Asset
+
+    More usage see : goss --help
+    '''
+    g = ctx.obj
+    if not g:
+        click.echo('You have not logged in yet, please run goss-cli to login')
+        ctx.exit()
+    print('ww')
+
+    r = g.get_release()
+    owner = orga if orga else g.owner
+    repo = repo if repo else goss_config.get_value('repo', 'name')
+
+    code, data = r.get_releases(owner, repo)
+    for d in data:
+        line = f'{d["id"]}\t{d["name"]}\t{d["tag_name"]}'
+        logger.info(line)
+
+    #  method = method.lower()
+
+    #  method_function = {
+        #  'get': 
+            #  }
+
+
+    #  method_function[method](owner, repo)
+
+    #  def _get():
+
 
 
 if __name__ == "__main__":

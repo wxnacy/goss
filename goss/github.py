@@ -12,6 +12,7 @@ import time
 import os
 import configparser
 import sys
+import mimetypes
 
 logger = Logger()
 
@@ -67,6 +68,9 @@ class Github():
         url = '/user'
         self._request('get', url)
         return self.response.status_code, self.response.json()
+
+    def get_release(self):
+        return Release(self)
 
     def get_file(self, owner, repository, path, ref='master'):
         '''
@@ -222,9 +226,128 @@ class Github():
         self.response = res
         if self.debug:
             logger.debug("Response code {}".format(res.status_code))
-            if res.status_code:
+            if res.status_code != 204:
                 logger.debug("Response data\n{}".format(
                     json.dumps(self.response.json(), indent=4)))
+
+class Release(Github):
+    def __init__(self, github, *args, **kwargs):
+        self.github = github
+
+    def create_release(self,owner, repo, tag_name, name="", body="",
+            draft=False, prerelease=False, target_commitish='master'):
+        '''
+        创建 release
+        https://developer.github.com/v3/repos/releases/#create-a-release
+        '''
+        if not body:
+            body = 'Create by [goss](https://github.com/wxnacy/goss)'
+        all_args = locals()
+        all_args.pop('owner')
+        all_args.pop('repo')
+        all_args.pop('self')
+        url = f'/repos/{owner}/{repo}/releases'
+        self.github._request('post', url, **all_args)
+        return self.github.response.status_code, self.github.response.json()
+
+    def get_release(self, owner, repo, release_id):
+        '''
+        Get a single release
+        https://developer.github.com/v3/repos/releases/#get-a-single-release
+        '''
+        url = f'/repos/{owner}/{repo}/releases/{release_id}'
+        self.github._request('get', url)
+        return self.github.response.status_code, self.github.response.json()
+
+    def get_release_by_tag(self, owner, repo, tag_name):
+        '''
+        Get a release by tag name
+        https://developer.github.com/v3/repos/releases/#get-a-release-by-tag-name
+        '''
+        url = f'/repos/{owner}/{repo}/releases/tags/{tag_name}'
+        self.github._request('get', url)
+        return self.github.response.status_code, self.github.response.json()
+
+    def get_latest_release(self, owner, repo):
+        '''
+        Get the latest release
+        https://developer.github.com/v3/repos/releases/#get-the-latest-release
+        '''
+        url = f'/repos/{owner}/{repo}/releases/latest'
+        self.github._request('get', url)
+        return self.github.response.status_code, self.github.response.json()
+
+    def get_releases(self, owner, repo):
+        '''
+        List releases for a repository
+        https://developer.github.com/v3/repos/releases/#list-releases-for-a-repository
+        '''
+        url = f'/repos/{owner}/{repo}/releases'
+        self.github._request('get', url)
+        return self.github.response.status_code, self.github.response.json()
+
+    def delete_release(self, owner, repo, release_id):
+        '''
+        Delete a release
+        https://developer.github.com/v3/repos/releases/#delete-a-release
+        '''
+        url = f'/repos/{owner}/{repo}/releases/{release_id}'
+        self.github._request('delete', url)
+        data = None
+        if self.github.response.status_code != 204:
+            data = self.github.response.json()
+        return self.github.response.status_code, data
+
+    def get_assets(self, owner, repo, release_id):
+        '''
+        List releases for a repository
+        https://developer.github.com/v3/repos/releases/#list-releases-for-a-repository
+        '''
+        url = f'/repos/{owner}/{repo}/releases/{release_id}/assets'
+        self.github._request('get', url)
+        return self.github.response.status_code, self.github.response.json()
+
+    def get_asset(self, owner, repo, asset_id):
+        '''
+        Get a single release asset
+        https://developer.github.com/v3/repos/releases/#get-a-single-release-asset
+        '''
+        url = f'/repos/{owner}/{repo}/releases/assets/{asset_id}'
+        self.github._request('get', url)
+        return self.github.response.status_code, self.github.response.json()
+
+    def delete_asset(self, owner, repo, asset_id):
+        '''
+        Delete a release asset
+        https://developer.github.com/v3/repos/releases/#delete-a-release-asset
+        '''
+        url = f'/repos/{owner}/{repo}/releases/assets/{asset_id}'
+        self.github._request('delete', url)
+        data = None
+        if self.github.response.status_code != 204:
+            data = self.github.response.json()
+        return self.github.response.status_code, data
+
+    def upload_asset_from_path(self, owner, repo, release_id, path, name='',
+            label=''):
+        '''
+        创建 asset
+        https://developer.github.com/v3/repos/releases/#upload-a-release-asset
+        '''
+        if not name:
+            name = os.path.basename(path)
+        url = f'https://uploads.github.com/repos/{owner}/{repo}/releases/{release_id}/assets?name={name}&label={label}'
+        data = open(path, 'rb').read()
+        content_type = mimetypes.guess_type(path)[0]
+        req_data = dict(
+            method = 'POST',
+            data = data,
+            url = url,
+            headers={"Accept": ACCEPT, "Content-Type": content_type},
+            auth=HTTPBasicAuth(self.github.user, self.github.password),
+        )
+        res = requests.request(**req_data)
+        return res.status_code, res.json()
 
 
 if __name__ == "__main__":
@@ -236,6 +359,7 @@ if __name__ == "__main__":
     default_cred = credential['default']
 
     g = Github(default_cred['user'], default_cred['password'])
+    g.debug =True
 
     config = configparser.ConfigParser()
     config.read(config_path)
@@ -250,5 +374,22 @@ if __name__ == "__main__":
     #  g.create_repository('test2')
     #  g.create_organization_repository(, 'test3')
     #  g.get_file('wxnacy', 'image', 'push')
-    g.get_owner_repositorys()
+    #  g.get_owner_repositorys()
 
+    #  g.upload_release_asset()
+
+    r = Release(g)
+    #  r1 = r.upload_asset_from_path('wxnacy', 'test', 17763761,
+            #  '/Users/wxnacy/Downloads/404-1.png', 'testss.mp4', '')
+    #  print(r.create_release('wxnacy', 'test', 'v1.0.2' ))
+    #  print(r.get_release_by_tag('wxnacy', 'test', 'v1.0.0'))
+    #  print(r.get_release_by_id('wxnacy', 'test', 17763761))
+    #  code, msg = r.get_assets('wxnacy', 'test', 17763761)
+    #  print(r.get_asset('wxnacy', 'test', 13013362))
+    #  print(r.delete_asset('wxnacy', 'test', msg[0]['id']))
+    #  print(r.get_latest_release('wxnacy', 'test'))
+    code, msg = r.get_releases('wxnacy', 'test')
+    #  print(r1)
+    r.delete_release('wxnacy', 'test', msg[0]['id'])
+
+    #  code, msg = r.get_assets('wxnacy', 'test', 17763761)
