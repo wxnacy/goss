@@ -379,8 +379,9 @@ if __name__ == "__main__":
     #  g.upload_release_asset()
 
     r = Release(g)
-    #  r1 = r.upload_asset_from_path('wxnacy', 'test', 17763761,
-            #  '/Users/wxnacy/Downloads/404-1.png', 'testss.mp4', '')
+    code, msg = r.get_releases('wxnacy', 'test')
+    r1 = r.upload_asset_from_path('wxnacy', 'test', msg[0]['id'],
+            '/Users/wxnacy/Downloads/404-1.png', '', '')
     #  print(r.create_release('wxnacy', 'test', 'v1.0.2' ))
     #  print(r.get_release_by_tag('wxnacy', 'test', 'v1.0.0'))
     #  print(r.get_release_by_id('wxnacy', 'test', 17763761))
@@ -388,8 +389,7 @@ if __name__ == "__main__":
     #  print(r.get_asset('wxnacy', 'test', 13013362))
     #  print(r.delete_asset('wxnacy', 'test', msg[0]['id']))
     #  print(r.get_latest_release('wxnacy', 'test'))
-    code, msg = r.get_releases('wxnacy', 'test')
     #  print(r1)
-    r.delete_release('wxnacy', 'test', msg[0]['id'])
+    #  r.delete_release('wxnacy', 'test', msg[0]['id'])
 
     #  code, msg = r.get_assets('wxnacy', 'test', 17763761)

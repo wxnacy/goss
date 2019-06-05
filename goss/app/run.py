@@ -216,31 +216,16 @@ def file(ctx, repo, path, orga, method, download, output, yes):
     def print_data(data):
         '''打印文件信息'''
         if isinstance(data, list):      # 打印列表
-            click.secho('sha\t\t\t\t\t\ttype\tsize\tpath', fg='magenta')
-            click.secho('-' * 100, fg='green')
-            for f in data:
-                click.echo('{}\t{}\t{}\t{}'.format(
-                    f['sha'], f['type'], f['size'], f['path']))
-            click.secho('-' * 100, fg='green')
-            click.echo("Total : {}".format(click.style(str(len(data)), fg='cyan')))
+            utils.print_list(data,
+                ['type\t', 'size\t', 'path\t\t', 'download_url'],
+                ['\t', '\t', '\t\t', '']
+            )
         elif isinstance(data, dict):    # 打印单个文件
-            kv = [
-                ('Path', 'path'),
-                ('Type', 'type'),
-                ('Size', 'size'),
-                ('Sha', 'sha'),
-                ('HtmlUrl', 'html_url'),
-                ('DownUrl', 'download_url'),
-            ]
-            for k, v in kv:
-                click.echo('{}\t: {}'.format(click.style(k, fg='magenta'),
-                    data[v]))
+            utils.print_dict(data, exclude=['_links'])
             pyperclip.copy(data['download_url'])
-            logger.info('Now you can use it with {} and wait for the upload to succeed.'.format(
-                click.style('<Ctrl-v>', fg='blue')
+            logger.info('Now you can use download_url with {}.'.format(
+                click.style('<CTRL-V>', fg='blue')
             ))
-            click.echo('More details see : {}'.format(click.style(data['url'],
-                fg='blue')))
 
     def _del_file(path, sha):
         '''删除单个文件'''
@@ -313,21 +298,21 @@ def repo(ctx, name, orga, method):
 
     owner = orga if orga else g.owner
 
-    def print_repo_detail(r):
-        '''打印单个 repository'''
-        #  click.secho('*' * 60, fg='yellow')
-        id_text = click.style('Id', fg='red')
-        click.echo('{}     : {}'.format(utils.make_error_msg('Id'), r['id']))
-        click.echo('{}   : {}'.format(utils.make_error_msg('Name'), r['name']))
-        click.echo('{}  : {}'.format(utils.make_error_msg('Owner'),
-            r['owner']['login']))
-        click.echo('{}    : {}'.format(utils.make_error_msg('Url'),
-            r['html_url']))
-        click.echo('{}   : {}'.format(utils.make_error_msg('Desc'),
-            r['description']))
-        #  click.echo('{} : {}'.format('Detail', r['url']))
-        click.echo('More details see: {}'.format(click.style(r['url'], fg='blue')))
-        #  click.secho('*' * 60, fg='yellow')
+    #  def print_repo_detail(r):
+        #  '''打印单个 repository'''
+        #  #  click.secho('*' * 60, fg='yellow')
+        #  id_text = click.style('Id', fg='red')
+        #  click.echo('{}     : {}'.format(utils.make_error_msg('Id'), r['id']))
+        #  click.echo('{}   : {}'.format(utils.make_error_msg('Name'), r['name']))
+        #  click.echo('{}  : {}'.format(utils.make_error_msg('Owner'),
+            #  r['owner']['login']))
+        #  click.echo('{}    : {}'.format(utils.make_error_msg('Url'),
+            #  r['html_url']))
+        #  click.echo('{}   : {}'.format(utils.make_error_msg('Desc'),
+            #  r['description']))
+        #  #  click.echo('{} : {}'.format('Detail', r['url']))
+        #  click.echo('More details see: {}'.format(click.style(r['url'], fg='blue')))
+        #  #  click.secho('*' * 60, fg='yellow')
 
     method = method.lower()
     if method == 'get':     # 处理 get 请求
@@ -339,7 +324,8 @@ def repo(ctx, name, orga, method):
                 utils.print_failed()
                 logger.error(repo.get("message"))
                 ctx.exit()
-            print_repo_detail(repo)
+            #  print_repo_detail(repo)
+            utils.print_dict(repo, ['owner'])
             utils.print_success()
             ctx.exit()
 
@@ -347,13 +333,15 @@ def repo(ctx, name, orga, method):
         logger.info('Query your repositorys.')
         logger.info('Waiting...')
         code, repos = g.get_owner_repositorys()
-        click.secho('id\tname\tfull_name\turl', fg='cyan')
-        click.secho('-' * 60, fg='yellow')
-        for r in repos:
-            click.echo('{}\t{}\t{}\t{}'.format(r['id'], r['name'],
-                r['full_name'], r['html_url']))
-        click.secho('-' * 60, fg='yellow')
-        click.secho('Total : {}'.format(len(repos)))
+        if code != 200:
+            utils.print_failed()
+            logger.error(repo.get("message"))
+            ctx.exit()
+        utils.print_list(repos, 
+            ['id\t\t', 'name\t', 'full_name\t', 'url'],
+            ['\t', '\t', '\t', ''],
+                )
+        utils.print_success()
         ctx.exit()
     elif method == 'post':
         logger.info("Create repository")
@@ -420,9 +408,9 @@ def config(ctx, name, value):
 @click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
 @click.option('--output', '-O', help = 'Download name. Default is file name')
 @click.option('--repo', '-r', help = 'Repository name. Default use config repo.name')
-@click.argument('path', default="/")
+@click.argument('id', default="")
 @click.pass_context
-def release(ctx, repo, path, orga, method, download, output, yes):
+def release(ctx, repo, id, orga, method, download, output, yes):
     '''
     Get/Create/Delete/Download your Release/Asset
 
@@ -432,27 +420,48 @@ def release(ctx, repo, path, orga, method, download, output, yes):
     if not g:
         click.echo('You have not logged in yet, please run goss-cli to login')
         ctx.exit()
-    print('ww')
 
     r = g.get_release()
     owner = orga if orga else g.owner
     repo = repo if repo else goss_config.get_value('repo', 'name')
 
-    code, data = r.get_releases(owner, repo)
-    for d in data:
-        line = f'{d["id"]}\t{d["name"]}\t{d["tag_name"]}'
-        logger.info(line)
+    def _get():
+        if id:
+            logger.info(f"Query release: {id}")
+            logger.info(f"Owner:\t{owner}")
+            logger.info(f"Repo:\t{repo}")
+            logger.info("Waiting...")
+            code, data = r.get_release(owner, repo, id)
+            if code != 200:
+                utils.print_failed()
+                logger.error(repo.get("message"))
+                ctx.exit()
+            data.pop('author')
+            utils.print_dict(data)
+        else:
+            logger.info("Query releases")
+            logger.info(f"Owner:\t{owner}")
+            logger.info(f"Repo:\t{repo}")
+            logger.info("Waiting...")
+            code, data = r.get_releases(owner, repo)
+            if code != 200:
+                utils.print_failed()
+                logger.error(repo.get("message"))
+                ctx.exit()
+            utils.print_list(data,
+                ['id\t\t', 'name\t', 'tag_name'],
+                ['\t', '\t', ''],
+            )
+            logger.info('Now you can see the detail with command:')
+            logger.info('\t\tgoss-cli release <id>')
+        utils.print_success()
+        ctx.exit()
 
-    #  method = method.lower()
-
-    #  method_function = {
-        #  'get': 
-            #  }
-
-
-    #  method_function[method](owner, repo)
-
-    #  def _get():
+    method_function = {
+        'get': _get
+    }
+    method = method.lower()
+    method_function[method]()
 
 
 

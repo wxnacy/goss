@@ -2,5 +2,5 @@
 
 path=test/`date '+%s'`
 
-# python goss/app/upload_file.py -r test -p $path $@
-python goss/app/upload_file.py -r test $@
+python goss/app/upload_file.py -r test -p $path $@
+# python goss/app/upload_file.py -r test $@
