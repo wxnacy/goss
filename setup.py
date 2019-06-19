@@ -26,6 +26,7 @@ REQUIRED = [
     # 'requests', 'maya', 'records',
     'click>=7.0',
     'pyperclip>=1.7.0',
+    'gevent>=1.4.0',
     'requests>=2.21.0'
 ]
 

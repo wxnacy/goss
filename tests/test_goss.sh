@@ -6,6 +6,7 @@ PYFILE=goss/app/upload_file.py
 
 get_status() {
     echo `curl $1 -IsL -w "%{http_code}" -o /dev/null`
+    # `curl $1 -IsL -w "%{http_code}\n" -o /dev/null`
 }
 
 generate_path() {
