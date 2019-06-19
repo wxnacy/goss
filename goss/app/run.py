@@ -39,7 +39,7 @@ def run(ctx, debug):
     Github Object Storage System
     '''
     if not os.path.exists(GOSS_CONFIG_HOME):
-        os.mkdir(GOSS_CONFIG_HOME)
+        os.makedirs(GOSS_CONFIG_HOME)
     if os.path.exists(GOSS_CREDENTIAL_PATH):
         cred = configparser.ConfigParser()
         cred.read(GOSS_CREDENTIAL_PATH)
@@ -52,6 +52,7 @@ def run(ctx, debug):
             g = Github(user, password)
             g.set_owner(default_cred['owner'])
 
+            # 获取作者信息
             conf = configparser.ConfigParser()
             conf.read(GOSS_CONFIG_PATH)
             author = conf['user']
@@ -74,6 +75,7 @@ def login(ctx, user, password, yes):
     g = ctx.obj
     confirm = utils.make_error_msg('The login information already exists. Do you want to replace it?')
     if not yes:
+        # 判断已经登录过，是否替换登录信息
         if g and not click.confirm(confirm):
             return
     conf = configparser.ConfigParser()

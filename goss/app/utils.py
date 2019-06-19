@@ -71,15 +71,22 @@ def print_list(data, include, val_suffixs):
 
 
 def config(filepath, section, **data):
+    '''新建或修改配置'''
     conf = configparser.ConfigParser()
     if os.path.exists(filepath):
         conf.read(filepath)
+    else:
+        dirname = os.path.dirname(filepath)
+        if not os.path.exists(dirname):
+            os.makedirs(dirname)
 
-    val = conf[section]
-    if val:
-        data.update(val)
+    if section in conf:
+        val = conf[section]
+        if val:
+            val.update(data)
+            data = val
 
-    conf[section] = data
+    conf[section] = dict(data)
 
     with open(filepath, 'w') as f:
         conf.write(f)

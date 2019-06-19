@@ -1,6 +1,8 @@
 # goss
 Github Object Storage System 使用 Github 构建类似 oss 的对象储存工具，本工具可以很方便的管理 github 数据，可以很方便的搭建图床
 
+***暂不支持 windows 系统***
+
 **创建仓库**
 
 ![goss1](https://raw.githubusercontent.com/wxnacy/image/master/blog/goss1.gif)
