@@ -5,6 +5,8 @@
 
 from requests.auth import HTTPBasicAuth
 from goss.app.logger import Logger
+from goss.app.config import ConfigParser
+from goss.app import utils
 import json
 import requests
 import base64
@@ -48,15 +50,35 @@ class Response(BaseObject):
 
 class Github():
     debug = False
-    def __init__(self, user, password):
-        self.user = user
-        self.password = password
+    def __init__(self, user, password, **kwargs):
+        '''
+        conf_path : default: ~/.config/goss/config
+        '''
+        self._user = user
+        self._password = password
 
-    def set_author(self, name, email):
-        self.author = Author(name, email)
+        conf_path = kwargs.get("conf_path") or utils.GOSS_CONFIG_PATH
+        conf_names = [utils.GOSS_CREDENTIAL_PATH, conf_path]
+        self._config = ConfigParser(*conf_names)
 
-    def set_owner(self, owner):
-        self.owner = owner
+        self._author = Author(self._config.user.name, self._config.user.email)
+
+    @property
+    def author(self):
+        return self._author
+
+    @property
+    def config(self):
+        return self._config
+
+    #  @config.setter
+    #  def config(self, conf_path):
+        #  print('set config', conf_path)
+        #  self._config.read(conf_path)
+
+    @property
+    def owner(self):
+        return self._config.default.owner
 
     def set_debug(self, debug: bool):
         self.debug = debug
@@ -218,7 +240,7 @@ class Github():
             method = method,
             url = API_URL.format(url),
             headers={"Accept": ACCEPT},
-            auth=HTTPBasicAuth(self.user, self.password),
+            auth=HTTPBasicAuth(self._user, self._password),
         )
         if data:
             req_data.update(data)

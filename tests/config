@@ -1,0 +1,7 @@
+[user]
+name = wxnacy
+email = wxnacy@gmail.com
+
+[repo]
+name = test
+path = config_test/

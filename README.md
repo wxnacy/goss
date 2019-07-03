@@ -27,22 +27,15 @@ $ pip install --upgrade goss
 
 ## 快速开始
 
-**创建仓库**
+goss 的命令格式基本遵守了 RESTful 风格
+
+### 仓库
 
 ```bash
-$ goss-cli repo <repository-name> -m post
-```
-
-**查看仓库**
-
-```bash
-$ goss-cli repo <repository-name>
-```
-
-**删除仓库**
-
-```bash
-$ goss-cli repo <repository-name> -m delete
+$ goss-cli repo                                 # 查看仓库列表
+$ goss-cli repo <repository-name>               # 查看指定仓库
+$ goss-cli repo <repository-name> -m post       # 创建仓库
+$ goss-cli repo <repository-name> -m delete     # 删除仓库
 ```
 
 **上传文件**

@@ -15,45 +15,40 @@ import sys
 
 logger = Logger()
 
-github = None
-owner = None
+#  github = None
+#  owner = None
 repo = None
+conf_path=None
 
-def init_git_config():
-    '''初始化 git 信息'''
-    credential_path = utils.GOSS_CREDENTIAL_PATH
+from functools import wraps
+def github_config(func):
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
+        g = None
+        credential_path = utils.GOSS_CREDENTIAL_PATH
+        if not os.path.exists(credential_path):
+            # TODO
+            pass
 
-    config_path = utils.GOSS_CONFIG_PATH
+        credential = configparser.ConfigParser()
+        credential.read(credential_path)
+        default_cred = credential['default']
+        g = Github(default_cred['user'], default_cred['password'])
 
-    if not os.path.exists(credential_path):
-        return None, ''
+        return func(g, *args, **kwargs)
+    return _wrapper
 
-    credential = configparser.ConfigParser()
-    credential.read(credential_path)
-    default_cred = credential['default']
-
-    g = Github(default_cred['user'], default_cred['password'])
-
-    config = configparser.ConfigParser()
-    config.read(config_path)
-    author = config['user']
-    g.set_author(author['name'], author['email'])
-
-    global owner
-    owner = credential['default']['owner']
-
-    return g
-
-def create(filepath, path=None, repo=None, yes=False, **kw):
+@github_config
+def create(g, filepath, path=None, repo=None, yes=False, **kw):
     '''
     创建文件
     '''
-    g = init_git_config()
     r = g.get_release()
+    owner = g.owner
+    if kw.get("config"):
+        g.config.read(kw['config'])
     if not path:
-        conf_path = goss_config.get_value('repo', 'path')
-        if conf_path:
-            path = conf_path
+        path = g.config.repo.path
 
     if not path:
         path = os.path.basename(filepath)
@@ -61,13 +56,11 @@ def create(filepath, path=None, repo=None, yes=False, **kw):
     if path.endswith('/'):
         path += os.path.basename(filepath)
 
-    config = configparser.ConfigParser()
-    config.read(utils.GOSS_CONFIG_PATH)
     if not repo:
-        repo = config['repo']['name']
+        repo = g.config.repo.name
 
     def _upload_file():
-
+        '''上传文件'''
         logger.info('Upload file')
         logger.info('Source\t:', filepath)
         logger.info('Path\t:', path)
@@ -114,6 +107,7 @@ def create(filepath, path=None, repo=None, yes=False, **kw):
                 sys.exit(0)
 
     def _upload_asset():
+        '''上传 release 的资产'''
         name = kw.get("name")
         if not name:
             name = os.path.basename(filepath)
@@ -143,7 +137,6 @@ def create(filepath, path=None, repo=None, yes=False, **kw):
         )
         if code != 201:
             utils.print_failed()
-            #  print(data)
             utils.print_error(data['message'])
             for err in data.get('errors', []):
                 utils.print_error(f"\t- {err['field']} {err['code']}")
@@ -160,14 +153,17 @@ def create(filepath, path=None, repo=None, yes=False, **kw):
 @click.option('--repo', '-r', help='Github repository name')
 @click.option('--path', '-p', help='Github repository file path')
 @click.option('--name', '-n', help='Want to upload asset name')
+@click.option('--config', '-c', help='Specified other config file',
+        type=click.Path(exists=True))
 @click.option('--release', '-R', help='Github repository release name, If give it means upload a release asset.')
 @click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
 #  @click.argument('filepath', type=click.Path(exists=True))
 @click.argument('filepath')
-def run(filepath, path, repo, yes, release, name):
+def run(filepath, path, repo, yes, release, name, config):
     '''
     Github Object Storage System
     '''
+
     kw = locals()
     #  print(kw)
     create(**kw)
