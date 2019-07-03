@@ -5,8 +5,8 @@
 
 import click
 from goss import Github
+from goss import github_credential
 from goss.app import utils
-from goss.app.config import goss_config
 from goss.app.logger import Logger
 import configparser
 import os
@@ -15,30 +15,7 @@ import sys
 
 logger = Logger()
 
-#  github = None
-#  owner = None
-repo = None
-conf_path=None
-
-from functools import wraps
-def github_config(func):
-    @wraps(func)
-    def _wrapper(*args, **kwargs):
-        g = None
-        credential_path = utils.GOSS_CREDENTIAL_PATH
-        if not os.path.exists(credential_path):
-            # TODO
-            pass
-
-        credential = configparser.ConfigParser()
-        credential.read(credential_path)
-        default_cred = credential['default']
-        g = Github(default_cred['user'], default_cred['password'])
-
-        return func(g, *args, **kwargs)
-    return _wrapper
-
-@github_config
+@github_credential
 def create(g, filepath, path=None, repo=None, yes=False, **kw):
     '''
     创建文件

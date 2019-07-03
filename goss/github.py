@@ -35,8 +35,8 @@ class BaseObject(object):
     def __str__(self):
         return self.to_json()
 
-class Content(BaseObject):
-    pass
+#  class Content(BaseObject):
+    #  pass
 
 class Author():
     def __init__(self, name, email):
@@ -47,6 +47,22 @@ class Response(BaseObject):
     def __init__(self):
         self.contents = []
     pass
+
+from functools import wraps
+def github_credential(func):
+    @wraps(func)
+    def _wrapper(*args, **kwargs):
+        g = None
+        credential_path = utils.GOSS_CREDENTIAL_PATH
+        if not os.path.exists(credential_path):
+            # TODO
+            sys.exit(0)
+        credential = configparser.ConfigParser()
+        credential.read(credential_path)
+        default_cred = credential['default']
+        g = Github(default_cred['user'], default_cred['password'])
+        return func(g, *args, **kwargs)
+    return _wrapper
 
 class Github():
     debug = False
