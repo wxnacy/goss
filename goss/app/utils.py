@@ -44,6 +44,7 @@ def print_dict(data, exclude=[], key_fg='magenta', val_fg=''):
         value = click.style(f"{v}", fg=val_fg)
         line = f"{key}: {value}"
         click.echo(line)
+    click.echo('')
 
 def print_list(data, include, val_suffixs):
     click.echo("")

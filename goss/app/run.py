@@ -5,6 +5,7 @@
 
 import click
 from goss import Github
+from goss import github_credential
 from goss import __version__
 from goss.app import utils
 from goss.app.config import goss_config
@@ -15,6 +16,7 @@ import pyperclip
 import json
 import base64
 import requests
+import reprlib
 
 GOSS_CONFIG_HOME = '{}/.config/goss'.format(os.getenv("HOME"))
 GOSS_CONFIG_PATH = '{}/config'.format(GOSS_CONFIG_HOME)
@@ -40,30 +42,29 @@ def run(ctx, debug):
     '''
     if not os.path.exists(GOSS_CONFIG_HOME):
         os.makedirs(GOSS_CONFIG_HOME)
-    if os.path.exists(GOSS_CREDENTIAL_PATH):
-        cred = configparser.ConfigParser()
-        cred.read(GOSS_CREDENTIAL_PATH)
-        secs = cred.sections()
-        if 'default' in secs:
-            default_cred = cred['default']
-            user = default_cred['user']
-            password = default_cred['password']
+    #  if os.path.exists(GOSS_CREDENTIAL_PATH):
+        #  cred = configparser.ConfigParser()
+        #  cred.read(GOSS_CREDENTIAL_PATH)
+        #  secs = cred.sections()
+        #  if 'default' in secs:
+            #  default_cred = cred['default']
+            #  user = default_cred['user']
+            #  password = default_cred['password']
 
-            g = Github(user, password)
-            g.set_owner(default_cred['owner'])
+            #  g = Github(user, password)
+            #  g.set_owner(default_cred['owner'])
 
-            # 获取作者信息
-            conf = configparser.ConfigParser()
-            conf.read(GOSS_CONFIG_PATH)
-            author = conf['user']
-            g.set_author(author['name'], author['email'])
-            g.set_debug(debug)
-            ctx.obj = g
+            #  # 获取作者信息
+            #  conf = configparser.ConfigParser()
+            #  conf.read(GOSS_CONFIG_PATH)
+            #  author = conf['user']
+            #  g.set_author(author['name'], author['email'])
+            #  g.set_debug(debug)
+            #  ctx.obj = g
 
 def init_credentials_path():
     if not os.path.exists(GOSS_CONFIG_HOME):
         os.mkdir(GOSS_CONFIG_HOME)
-
 
 @run.command(help='Log in to the github account')
 @click.option('--user', '-u', prompt='Your Github user', help = 'Your Github user')
@@ -119,10 +120,12 @@ TOO_LARGE_SIZE = 100 * 1024 * 1024
 @click.option('--download', '-D', is_flag = True, help = 'Download file')
 @click.option('--yes', '-y', is_flag = True, default = False, help = 'All questions answered yes')
 @click.option('--output', '-O', help = 'Download name. Default is file name')
-@click.option('--repo', '-r', required = True, help = 'Repository name')
+@click.option('--repo', '-r', help = 'Specified a repository name')
+#  @click.option('--repo', '-r', required = True, help = 'Repository name')
 @click.argument('path', default="/")
 @click.pass_context
-def file(ctx, repo, path, orga, method, download, output, yes):
+@github_credential
+def file(g, ctx, repo, path, orga, method, download, output, yes):
     '''
     Get/Delete/Download your file
 
@@ -132,12 +135,9 @@ def file(ctx, repo, path, orga, method, download, output, yes):
 
     More usage see : goss --help
     '''
-    g = ctx.obj
-    if not g:
-        click.echo('You have not logged in yet, please run goss-cli to login')
-        ctx.exit()
 
     owner = orga if orga else g.owner
+    repo = repo if repo else g.config.repo.name
 
     def _get_progress(progress, total):
         '''打印进度条'''
@@ -147,7 +147,6 @@ def file(ctx, repo, path, orga, method, download, output, yes):
         pro_text = '[{:-<20s}] {:.2f}% {} / {}'.format(
             '=' * progress_num, progress_ratio * 100, progress, total)
         return pro_text
-
 
     def _save(p, filepath, content):
         '''保存文件'''
@@ -215,15 +214,40 @@ def file(ctx, repo, path, orga, method, download, output, yes):
         utils.print_success()
         ctx.exit()
 
+    def _print_file_list(lines):
+        '''打印文件列表信息'''
+        max_size_len = 0
+        max_path_len = 0
+        for l in lines:
+            max_size_len = max(max_size_len, len(str(l['size'])))
+            l['path'] = reprlib.repr(l['path'].replace(path, '').replace('/',
+                '')).strip('\'')
+            max_path_len = max(max_path_len, len(l['path']))
+        max_size_len += 4
+        max_path_len += 4
+        title = 'Title\t{}{}DownloadUrl'.format('Size'.ljust(max_size_len), 
+            'Path'.ljust(max_path_len))
+        hor_len = len(title) + 50
+        hor_line = click.style('-' * hor_len, fg='yellow')
+        click.secho(title, fg='magenta')
+        click.secho(hor_line)
+        for l in lines:
+            size = str(l['size']).ljust(max_size_len)
+            l['size'] = size
+            l['path'] = l['path'].ljust(max_path_len)
+            line = '{type}\t{size}{path}{download_url}'.format(**l)
+            click.echo(line)
+        click.secho(hor_line)
+        total = click.style(str(len(data)), fg='cyan')
+        click.secho(f'Total : {total}')
+        click.echo('')
+
     def print_data(data):
         '''打印文件信息'''
         if isinstance(data, list):      # 打印列表
-            utils.print_list(data,
-                ['type\t', 'size\t', 'path\t\t', 'download_url'],
-                ['\t', '\t', '\t\t', '']
-            )
+            _print_file_list(data)
         elif isinstance(data, dict):    # 打印单个文件
-            utils.print_dict(data, exclude=['_links'])
+            utils.print_dict(data, exclude=['_links', 'content'])
             pyperclip.copy(data['download_url'])
             logger.info('Now you can use download_url with {}.'.format(
                 click.style('<CTRL-V>', fg='blue')
@@ -289,32 +313,13 @@ def file(ctx, repo, path, orga, method, download, output, yes):
 @click.option('--orga', '-o', help = 'If want create organization repository. Is required')
 @click.argument('name', required = False)
 @click.pass_context
-def repo(ctx, name, orga, method):
+@github_credential
+def repo(g, ctx, name, orga, method):
     '''
     Get/Create your repositorys
     '''
-    g = ctx.obj
-    if not g:
-        click.echo('You have not logged in yet, please run goss-cli to login')
-        ctx.exit()
 
     owner = orga if orga else g.owner
-
-    #  def print_repo_detail(r):
-        #  '''打印单个 repository'''
-        #  #  click.secho('*' * 60, fg='yellow')
-        #  id_text = click.style('Id', fg='red')
-        #  click.echo('{}     : {}'.format(utils.make_error_msg('Id'), r['id']))
-        #  click.echo('{}   : {}'.format(utils.make_error_msg('Name'), r['name']))
-        #  click.echo('{}  : {}'.format(utils.make_error_msg('Owner'),
-            #  r['owner']['login']))
-        #  click.echo('{}    : {}'.format(utils.make_error_msg('Url'),
-            #  r['html_url']))
-        #  click.echo('{}   : {}'.format(utils.make_error_msg('Desc'),
-            #  r['description']))
-        #  #  click.echo('{} : {}'.format('Detail', r['url']))
-        #  click.echo('More details see: {}'.format(click.style(r['url'], fg='blue')))
-        #  #  click.secho('*' * 60, fg='yellow')
 
     method = method.lower()
     if method == 'get':     # 处理 get 请求
@@ -364,7 +369,6 @@ def repo(ctx, name, orga, method):
             logger.error(data.get("message"))
         utils.print_success()
 
-
     elif method == 'delete':
         logger.info("Delete repository")
         logger.info("Url : https://github.com/{}/{}".format(owner, name))
@@ -384,6 +388,10 @@ def repo(ctx, name, orga, method):
 def config(ctx, name, value):
     '''
     Get/Create/Update goss config
+
+    goss-cli config                  :  Show config
+
+    goss-cli config user.name wxnacy :  Create/Update config value
     '''
     if name and value and '.' in name:
         names = name.split('.')
@@ -412,16 +420,13 @@ def config(ctx, name, value):
 @click.option('--repo', '-r', help = 'Repository name. Default use config repo.name')
 @click.argument('id', default="")
 @click.pass_context
-def release(ctx, repo, id, orga, method, download, output, yes):
+@github_credential
+def release(g, ctx, repo, id, orga, method, download, output, yes):
     '''
     Get/Create/Delete/Download your Release/Asset
 
     More usage see : goss --help
     '''
-    g = ctx.obj
-    if not g:
-        click.echo('You have not logged in yet, please run goss-cli to login')
-        ctx.exit()
 
     r = g.get_release()
     owner = orga if orga else g.owner
@@ -464,8 +469,6 @@ def release(ctx, repo, id, orga, method, download, output, yes):
     }
     method = method.lower()
     method_function[method]()
-
-
 
 if __name__ == "__main__":
     run()

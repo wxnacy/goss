@@ -55,7 +55,7 @@ def github_credential(func):
         g = None
         credential_path = utils.GOSS_CREDENTIAL_PATH
         if not os.path.exists(credential_path):
-            # TODO
+            print('You have not logged in yet, please run `goss-cli login`')
             sys.exit(0)
         credential = configparser.ConfigParser()
         credential.read(credential_path)
