@@ -46,29 +46,49 @@ def print_dict(data, exclude=[], key_fg='magenta', val_fg=''):
         click.echo(line)
     click.echo('')
 
-def print_list(data, include, val_suffixs):
-    click.echo("")
-    title = ''.join(include).title()
-    hor_len = len(title.replace('\t', '-' * 8))
+#  def print_list(data, include, val_suffixs):
+    #  click.echo("")
+    #  title = ''.join(include).title()
+    #  hor_len = len(title.replace('\t', '-' * 8))
+    #  hor_line = click.style('-' * hor_len, fg='yellow')
+    #  click.secho(title, fg='magenta')
+    #  click.secho(hor_line)
+    #  for d in data:
+        #  lines = []
+        #  for i in range(len(include)):
+            #  f = include[i]
+            #  field_len = len(f.replace('\t', '*' * 8))
+            #  field_key = f.rstrip('\t')
+            #  field_val = f"{d[field_key]}{val_suffixs[i]}"
+            #  lines.append(field_val)
+        #  line = ''.join(lines)
+        #  click.echo(line)
+    #  click.secho(hor_line)
+    #  total = click.style(str(len(data)), fg='cyan')
+    #  click.secho(f'Total : {total}')
+    #  click.echo('')
+
+def print_list(data, *include):
+    max_len_dict = {o: len(o) for o in include}
+    for d in data:
+        for f in include:
+            #  print(d[f])
+            max_len_dict[f] = max(max_len_dict[f], charlen(str(d[f])))
+
+    title = '\t'.join([o.ljust(max_len_dict[o]) for o in include])
+    hor_len = sum([v for k, v in max_len_dict.items()])
     hor_line = click.style('-' * hor_len, fg='yellow')
     click.secho(title, fg='magenta')
     click.secho(hor_line)
-    for d in data:
-        lines = []
-        for i in range(len(include)):
-            f = include[i]
-            field_len = len(f.replace('\t', '*' * 8))
-            field_key = f.rstrip('\t')
-            field_val = f"{d[field_key]}{val_suffixs[i]}"
-            lines.append(field_val)
-        line = ''.join(lines)
+    for l in data:
+        for k in include:
+            l[k] = charljust(str(l[k]), max_len_dict[k])
+        line = '\t'.join([str(l[k]) for k in include])
         click.echo(line)
     click.secho(hor_line)
     total = click.style(str(len(data)), fg='cyan')
     click.secho(f'Total : {total}')
-    click.echo('')
-
-
+    #  click.echo('')
 
 
 def config(filepath, section, **data):

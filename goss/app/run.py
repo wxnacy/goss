@@ -120,80 +120,80 @@ def file(g, ctx, repo, path, orga, method, download, output, yes):
     owner = orga if orga else g.owner
     repo = repo if repo else g.config.repo.name
 
-    def _get_progress(progress, total):
-        '''打印进度条'''
-        progress_ratio = progress / total
-        progress_len = 20
-        progress_num = int(progress_ratio * 20)
-        pro_text = '[{:-<20s}] {:.2f}% {} / {}'.format(
-            '=' * progress_num, progress_ratio * 100, progress, total)
-        return pro_text
+    #  def _get_progress(progress, total):
+        #  '''打印进度条'''
+        #  progress_ratio = progress / total
+        #  progress_len = 20
+        #  progress_num = int(progress_ratio * 20)
+        #  pro_text = '[{:-<20s}] {:.2f}% {} / {}'.format(
+            #  '=' * progress_num, progress_ratio * 100, progress, total)
+        #  return pro_text
 
-    def _save(p, filepath, content):
-        '''保存文件'''
-        byte_data = base64.b64decode(content.encode())
-        _save_by_bytes(p, filepath, byte_data)
+    #  def _save(p, filepath, content):
+        #  '''保存文件'''
+        #  byte_data = base64.b64decode(content.encode())
+        #  _save_by_bytes(p, filepath, byte_data)
 
-    def _save_by_bytes(p, filepath, byte_data):
-        '''保存文件'''
-        filedir = os.path.dirname(filepath)
-        filename = os.path.dirname(filepath)
-        with open(name, 'wb') as f:
-            total = len(byte_data)
-            progress = 0
-            step = 10
-            while progress < total:
-                b = progress
-                e = b + step
-                f.write(byte_data[b:e])
-                progress += step
-                end = '\r'
-                if progress >= total:
-                    end = '\n'
-                    progress = total
-                print(p, _get_progress(progress, total), end = end)
-            f.flush()
-            f.close()
+    #  def _save_by_bytes(p, filepath, byte_data):
+        #  '''保存文件'''
+        #  filedir = os.path.dirname(filepath)
+        #  filename = os.path.dirname(filepath)
+        #  with open(name, 'wb') as f:
+            #  total = len(byte_data)
+            #  progress = 0
+            #  step = 10
+            #  while progress < total:
+                #  b = progress
+                #  e = b + step
+                #  f.write(byte_data[b:e])
+                #  progress += step
+                #  end = '\r'
+                #  if progress >= total:
+                    #  end = '\n'
+                    #  progress = total
+                #  print(p, _get_progress(progress, total), end = end)
+            #  f.flush()
+            #  f.close()
 
-    if download:
-        logger.info('Download file')
-        logger.info('Owner\t: {}'.format(owner))
-        logger.info('Repo\t: {}'.format(repo))
-        logger.info('Path\t: {}'.format(path))
-        logger.info('Waiting...')
-        code, data = g.get_file(owner, repo, path)
-        if code == 403:         # 文件太大，需要使用其它方式进行下载
-            logger.warn('The file is larger than 1 MB and needs to be downloaded using the download_url.')
-            path_dir = os.path.dirname(path)
-            if not path_dir:
-                path_dir = '/'
-            c, files = g.get_file(owner, repo, path_dir)
-            down_url = ''
-            file_name = []
-            for f in files:
-                if f['path'] == path:
-                    down_url = f['download_url']
-                    file_name = f['name']
-            file_res = requests.get(down_url)
+    #  if download:
+        #  logger.info('Download file')
+        #  logger.info('Owner\t: {}'.format(owner))
+        #  logger.info('Repo\t: {}'.format(repo))
+        #  logger.info('Path\t: {}'.format(path))
+        #  logger.info('Waiting...')
+        #  code, data = g.get_file(owner, repo, path)
+        #  if code == 403:         # 文件太大，需要使用其它方式进行下载
+            #  logger.warn('The file is larger than 1 MB and needs to be downloaded using the download_url.')
+            #  path_dir = os.path.dirname(path)
+            #  if not path_dir:
+                #  path_dir = '/'
+            #  c, files = g.get_file(owner, repo, path_dir)
+            #  down_url = ''
+            #  file_name = []
+            #  for f in files:
+                #  if f['path'] == path:
+                    #  down_url = f['download_url']
+                    #  file_name = f['name']
+            #  file_res = requests.get(down_url)
 
-            name = output or file_name
-            _save_by_bytes(path, name, file_res.content)
-            utils.print_success()
-            ctx.exit()
+            #  name = output or file_name
+            #  _save_by_bytes(path, name, file_res.content)
+            #  utils.print_success()
+            #  ctx.exit()
 
-        if code != 200:         # 其他错误直接返回
-            utils.print_failed()
-            logger.error(data.get("message"))
-            ctx.exit()
-        type = data.get("type")
-        name = output or data.get("name")
-        if isinstance(data, dict):
-            content = data.get("content")
-            _save(path, name, content)
-        elif isinstance(data, list):
-            pass
-        utils.print_success()
-        ctx.exit()
+        #  if code != 200:         # 其他错误直接返回
+            #  utils.print_failed()
+            #  logger.error(data.get("message"))
+            #  ctx.exit()
+        #  type = data.get("type")
+        #  name = output or data.get("name")
+        #  if isinstance(data, dict):
+            #  content = data.get("content")
+            #  _save(path, name, content)
+        #  elif isinstance(data, list):
+            #  pass
+        #  utils.print_success()
+        #  ctx.exit()
 
     def _print_file_list(lines):
         '''打印文件列表信息'''
@@ -222,10 +222,17 @@ def file(g, ctx, repo, path, orga, method, download, output, yes):
         click.secho(f'Total : {total}')
         click.echo('')
 
+    def fmt_list(data):
+        for l in data:
+            l['path'] = reprlib.repr(l['path'].replace(path, '').replace('/',
+                '')).strip('\'')
+
     def print_data(data):
         '''打印文件信息'''
         if isinstance(data, list):      # 打印列表
-            _print_file_list(data)
+            #  _print_file_list(data)
+            fmt_list(data)
+            utils.print_list(data, 'type', 'size', 'path', 'download_url')
         elif isinstance(data, dict):    # 打印单个文件
             utils.print_dict(data, exclude=['_links', 'content'])
             pyperclip.copy(data['download_url'])
@@ -299,6 +306,10 @@ def repo(g, ctx, name, orga, method):
     Get/Create your repositorys
     '''
 
+    if name and '/' in name:
+        orga = name.split('/')[0]
+        name = name.split('/')[1]
+
     owner = orga if orga else g.owner
 
     method = method.lower()
@@ -311,7 +322,6 @@ def repo(g, ctx, name, orga, method):
                 utils.print_failed()
                 logger.error(repo.get("message"))
                 ctx.exit()
-            #  print_repo_detail(repo)
             utils.print_dict(repo, ['owner'])
             utils.print_success()
             ctx.exit()
@@ -324,10 +334,7 @@ def repo(g, ctx, name, orga, method):
             utils.print_failed()
             logger.error(repo.get("message"))
             ctx.exit()
-        utils.print_list(repos,
-            ['id\t\t', 'name\t', 'full_name\t', 'url'],
-            ['\t', '\t', '\t', ''],
-                )
+        utils.print_list(repos, *['id', 'name', 'full_name', 'url'])
         utils.print_success()
         ctx.exit()
     elif method == 'post':
@@ -435,10 +442,7 @@ def release(g, ctx, repo, id, orga, method, download, output, yes):
                 utils.print_failed()
                 logger.error(repo.get("message"))
                 ctx.exit()
-            utils.print_list(data,
-                ['id\t\t', 'name\t', 'tag_name'],
-                ['\t', '\t', ''],
-            )
+            utils.print_list(data, *['id', 'name', 'tag_name'])
             logger.info('Now you can see the detail with command:')
             logger.info('\t\tgoss-cli release <id>')
         utils.print_success()
