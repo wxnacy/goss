@@ -8,7 +8,7 @@ import configparser
 import os
 import gevent
 import time
-
+import re
 
 GOSS_CONFIG_HOME = '{}/.config/goss'.format(os.getenv("HOME"))
 GOSS_CONFIG_PATH = '{}/config'.format(GOSS_CONFIG_HOME)
@@ -127,6 +127,32 @@ class Progress():
                     print(msg)
                     print(f'{p} {msg}', end='\r')
         print('Success!       ')
+
+RE_CHINESE = re.compile(u"[\u4e00-\u9fa5]+")  # 正则查找中文
+
+def charlen(s):
+    '''
+    Return the str's char len
+    '''
+    ch_results = RE_CHINESE.findall(s)
+    return len(s) + len(''.join(ch_results))
+
+def charepr(s, width=30):
+    realen = charlen(s)
+    if realen <= width:
+        return s
+    substr = ''
+    max_str_len = 0
+    for a in s:
+        if charlen(substr) + charlen(a) + 3 > width:
+            break
+        substr += a
+        max_str_len = charlen(substr)
+    return substr + '.' * (width - charlen(substr))
+
+def charljust(s, width, fullchar=' '):
+    w = width - (charlen(s) - len(s))
+    return s.ljust(w, fullchar)
 
 if __name__ == "__main__":
     #  gevent.joinall([

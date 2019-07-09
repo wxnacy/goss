@@ -42,29 +42,10 @@ def run(ctx, debug):
     '''
     if not os.path.exists(GOSS_CONFIG_HOME):
         os.makedirs(GOSS_CONFIG_HOME)
-    #  if os.path.exists(GOSS_CREDENTIAL_PATH):
-        #  cred = configparser.ConfigParser()
-        #  cred.read(GOSS_CREDENTIAL_PATH)
-        #  secs = cred.sections()
-        #  if 'default' in secs:
-            #  default_cred = cred['default']
-            #  user = default_cred['user']
-            #  password = default_cred['password']
 
-            #  g = Github(user, password)
-            #  g.set_owner(default_cred['owner'])
-
-            #  # 获取作者信息
-            #  conf = configparser.ConfigParser()
-            #  conf.read(GOSS_CONFIG_PATH)
-            #  author = conf['user']
-            #  g.set_author(author['name'], author['email'])
-            #  g.set_debug(debug)
-            #  ctx.obj = g
-
-def init_credentials_path():
-    if not os.path.exists(GOSS_CONFIG_HOME):
-        os.mkdir(GOSS_CONFIG_HOME)
+#  def init_credentials_path():
+    #  if not os.path.exists(GOSS_CONFIG_HOME):
+        #  os.mkdir(GOSS_CONFIG_HOME)
 
 @run.command(help='Log in to the github account')
 @click.option('--user', '-u', prompt='Your Github user', help = 'Your Github user')
@@ -222,10 +203,8 @@ def file(g, ctx, repo, path, orga, method, download, output, yes):
             max_size_len = max(max_size_len, len(str(l['size'])))
             l['path'] = reprlib.repr(l['path'].replace(path, '').replace('/',
                 '')).strip('\'')
-            max_path_len = max(max_path_len, len(l['path']))
-        max_size_len += 4
-        max_path_len += 4
-        title = 'Title\t{}{}DownloadUrl'.format('Size'.ljust(max_size_len), 
+            max_path_len = max(max_path_len, utils.charlen(l['path']))
+        title = 'Title\t{}\t{}\tDownloadUrl'.format('Size'.ljust(max_size_len),
             'Path'.ljust(max_path_len))
         hor_len = len(title) + 50
         hor_line = click.style('-' * hor_len, fg='yellow')
@@ -234,8 +213,9 @@ def file(g, ctx, repo, path, orga, method, download, output, yes):
         for l in lines:
             size = str(l['size']).ljust(max_size_len)
             l['size'] = size
-            l['path'] = l['path'].ljust(max_path_len)
-            line = '{type}\t{size}{path}{download_url}'.format(**l)
+            l['path'] = utils.charljust(l['path'], max_path_len)
+            #  l['path'] = l['path'].ljust(max_path_len, '*')
+            line = '{type}\t{size}\t{path}\t{download_url}'.format(**l)
             click.echo(line)
         click.secho(hor_line)
         total = click.style(str(len(data)), fg='cyan')
@@ -344,7 +324,7 @@ def repo(g, ctx, name, orga, method):
             utils.print_failed()
             logger.error(repo.get("message"))
             ctx.exit()
-        utils.print_list(repos, 
+        utils.print_list(repos,
             ['id\t\t', 'name\t', 'full_name\t', 'url'],
             ['\t', '\t', '\t', ''],
                 )
