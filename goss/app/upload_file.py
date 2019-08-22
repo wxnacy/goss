@@ -45,7 +45,10 @@ def create(g, filepath, path=None, repo=None, yes=False, **kw):
         html_url = f'https://github.com/{owner}/{repo}/blob/master/{path}'
         logger.info('HtmlUrl\t:', html_url)
         logger.info('DownUrl\t:', click.style(download_url, fg='blue'))
-        pyperclip.copy(download_url)
+        try:
+            pyperclip.copy(download_url)
+        except:
+            pass
         logger.info('Now you can use it with {} and wait for the upload to succeed.'.format(
             click.style('<CTRL-V>', fg='blue')
         ))

@@ -235,7 +235,10 @@ def file(g, ctx, repo, path, orga, method, download, output, yes):
             utils.print_list(data, 'type', 'size', 'path', 'download_url')
         elif isinstance(data, dict):    # 打印单个文件
             utils.print_dict(data, exclude=['_links', 'content'])
-            pyperclip.copy(data['download_url'])
+            try:
+                pyperclip.copy(data['download_url'])
+            except:
+                pass
             logger.info('Now you can use download_url with {}.'.format(
                 click.style('<CTRL-V>', fg='blue')
             ))
