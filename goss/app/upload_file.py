@@ -15,6 +15,62 @@ import sys
 
 logger = Logger()
 
+
+def upload_file(g, owner, repo, filepath, path, is_replace):
+    '''上传文件'''
+    logger.info('Upload file')
+    logger.info('Source\t:', filepath)
+    logger.info('Path\t:', path)
+    download_url = f'https://raw.githubusercontent.com/{owner}/{repo}/master/{path}'
+    html_url = f'https://github.com/{owner}/{repo}/blob/master/{path}'
+    logger.info('HtmlUrl\t:', html_url)
+    logger.info('DownUrl\t:', click.style(download_url, fg='blue'))
+    try:
+        # 将文件下载地址复制到粘贴板
+        pyperclip.copy(download_url)
+    except:
+        # 忽略错误
+        pass
+    logger.info('Now you can use it with {} and wait for the upload to succeed.'.format(
+        click.style('<CTRL-V>', fg='blue')
+    ))
+    logger.info('Waiting...')
+
+    if filepath.startswith('http'):
+        # 通过 url 上传
+        default_create = g.create_file_from_url
+    else:
+        # 通过文件上传
+        default_create = g.create_file_from_path
+
+    # 上传文件
+    code, data = default_create(owner, repo, filepath, path)
+    if code == 404:
+        utils.print_failed()
+        logger.error('Repository Owner or Name not found', with_color=True)
+        return
+
+    # 如果文件已经存在，则询问是否覆盖
+    if code == 422 and data.get("message") == \
+            'Invalid request.\n\n"sha" wasn\'t supplied.':
+        confirm_msg = 'This file is exists. Do you want to replace?'
+        if not is_replace and not click.confirm(confirm_msg):
+            return
+
+        logger.warn('This file already exists and is now replaced',
+                    with_color=True)
+
+        logger.info('Waiting...')
+        # 遇到重复文件名，需要获取 sha 值后进行覆盖
+        code, data = g.get_file(owner, repo, path)
+        sha = data['sha']
+        code, data = default_create(owner, repo, filepath, path, sha)
+
+        if code != 200:
+            utils.print_failed()
+            utils.print_error(data['message'])
+            sys.exit(0)
+
 @github_credential
 def create(g, filepath, path=None, repo=None, yes=False, **kw):
     '''
@@ -36,55 +92,6 @@ def create(g, filepath, path=None, repo=None, yes=False, **kw):
     if not repo:
         repo = g.config.repo.name
 
-    def _upload_file():
-        '''上传文件'''
-        logger.info('Upload file')
-        logger.info('Source\t:', filepath)
-        logger.info('Path\t:', path)
-        download_url = f'https://raw.githubusercontent.com/{owner}/{repo}/master/{path}'
-        html_url = f'https://github.com/{owner}/{repo}/blob/master/{path}'
-        logger.info('HtmlUrl\t:', html_url)
-        logger.info('DownUrl\t:', click.style(download_url, fg='blue'))
-        try:
-            pyperclip.copy(download_url)
-        except:
-            pass
-        logger.info('Now you can use it with {} and wait for the upload to succeed.'.format(
-            click.style('<CTRL-V>', fg='blue')
-        ))
-        logger.info('Waiting...')
-
-        if filepath.startswith('http'):
-            default_create = g.create_file_from_url     # 通过 url 上传
-        else:
-            default_create = g.create_file_from_path    # 通过文件上传
-
-        code, data = default_create(owner, repo, filepath, path)    # 上传
-        if code == 404:
-            utils.print_failed()
-            logger.error('Repository Owner or Name not found', with_color=True)
-            return
-
-        # 如果文件已经存在，则询问是否覆盖
-        if code == 422 and data.get("message") == \
-                'Invalid request.\n\n"sha" wasn\'t supplied.':
-            if not yes:
-                if not click.confirm('This file is exists. Do you want to replace?'):
-                    return
-            else:
-                logger.warn('This file already exists and is now replaced',
-                        with_color=True)
-
-            logger.info('Waiting...')
-            # 遇到重复文件名，需要获取 sha 值后进行覆盖
-            code, data = g.get_file(owner, repo, path)
-            sha = data['sha']
-            code, data = default_create(owner, repo, filepath, path, sha)
-
-            if code != 200:
-                utils.print_failed()
-                utils.print_error(data['message'])
-                sys.exit(0)
 
     def _upload_asset():
         '''上传 release 的资产'''
@@ -126,7 +133,7 @@ def create(g, filepath, path=None, repo=None, yes=False, **kw):
     if release:
         _upload_asset()
     else:
-        _upload_file()
+        upload_file(g, owner, repo, filepath, path, yes)
     utils.print_success()
 
 @click.command()

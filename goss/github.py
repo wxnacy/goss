@@ -50,6 +50,7 @@ class Response(BaseObject):
 
 from functools import wraps
 def github_credential(func):
+    '''检查当前是否登录'''
     @wraps(func)
     def _wrapper(*args, **kwargs):
         g = None
