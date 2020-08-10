@@ -383,7 +383,7 @@ class Release(Github):
             data = data,
             url = url,
             headers={"Accept": ACCEPT, "Content-Type": content_type},
-            auth=HTTPBasicAuth(self.github.user, self.github.password),
+            auth=HTTPBasicAuth(self.github._user, self.github._password),
         )
         res = requests.request(**req_data)
         return res.status_code, res.json()

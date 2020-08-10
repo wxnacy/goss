@@ -77,6 +77,7 @@ def create(g, filepath, path=None, repo=None, yes=False, **kw):
     创建文件
     '''
     r = g.get_release()
+    #  print(g._user)
     owner = g.owner
     if kw.get("config"):
         g.config.read(kw['config'])
