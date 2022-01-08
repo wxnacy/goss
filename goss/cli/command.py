@@ -1,0 +1,53 @@
+#!/usr/bin/env python
+# -*- coding:utf-8 -*-
+# Author: wxnacy(wxnacy@gmail.com)
+"""
+
+"""
+import sys
+
+from csarg import CommandArgumentParserFactory
+
+from goss.argument.command import CmdArgumentParser
+from goss.loggers import get_logger
+from goss.cli.run_mode import RUN_MODE
+
+logger = get_logger('main')
+
+__all__ = ['Command']
+
+class Command(object):
+    logger = get_logger('Command')
+
+    def __init__(self, *args, **kwargs):
+        pass
+
+    def convert_argparse(self, cmd):
+        """转换参数解析器"""
+        for clz in CmdArgumentParser.__subclasses__():
+            if clz.cmd == cmd:
+                return clz.default()
+
+        return CommandArgumentParserFactory.build_parser(cmd)
+
+    #  @profile
+    def run(self):
+        RUN_MODE.set_command()
+
+        sys_args = sys.argv[1:]
+        if not sys_args:
+            sys_args = ['shell']
+        cmd = sys_args[0]
+
+        args_text = ' '.join(sys_args)
+
+        # 转换参数解析器
+        parser = self.convert_argparse(cmd)
+        #  args = parser.parse_args(args_text)
+
+        parser.run(args_text)
+
+
+def main():
+    Command().run()
+
