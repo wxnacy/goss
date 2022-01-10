@@ -6,9 +6,8 @@
 from flask import Flask
 from flask import request
 
-from wush import run
-from goss.constants import Constants
 from goss.config import save_github_access_token
+from goss.models import Github
 
 app = Flask(__name__)
 
@@ -17,12 +16,12 @@ app = Flask(__name__)
 def github_callback():
     args = request.args
     code = args.get("code")
-    res = run('www_github', 'oauth_access_token',
-        params={ "code": code },
-        config = Constants.CONFIG_PATH)
-    access_token = res.get("access_token")
-    save_github_access_token(access_token)
-    return res
+    version = args.get("version")
+    res = Github().oauth_access_token(code)
+    data = res.json()
+    access_token = data.get("access_token")
+    save_github_access_token(version, access_token)
+    return data
 
 @app.route('/github/test')
 def test():

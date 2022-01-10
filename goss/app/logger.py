@@ -4,6 +4,7 @@
 # Description:
 
 import click
+from termcolor import colored
 
 class Logger():
     def __init__(self, *args, **kwargs):
@@ -12,7 +13,8 @@ class Logger():
     def info(self, *msg):
         color = 'cyan'
         message = ' '.join(msg)
-        click.echo(click.style('[INFO] ', fg=color) + message)
+        #  click.echo(click.style('[INFO] ', fg=color) + message)
+        print(colored('[INFO] ', color) + message)
 
     def debug(self, *msg, with_color=False):
         color = 'yellow'
@@ -36,4 +38,6 @@ class Logger():
         click.echo(click.style('[WARN] ', fg=color) + message)
 
 
-
+if __name__ == "__main__":
+    logger = Logger()
+    logger.info('info message')
