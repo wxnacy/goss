@@ -22,6 +22,7 @@ class Request():
     DELETE_CONTENT = 'delete_content'
 
 _wush_params = { "config": Constants.CONFIG_PATH }
+print(_wush_params)
 
 class Github(object):
 

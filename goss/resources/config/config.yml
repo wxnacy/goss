@@ -1,0 +1,4 @@
+modules_include:
+  - 'module/'
+function_modules:
+  - 'goss.function'

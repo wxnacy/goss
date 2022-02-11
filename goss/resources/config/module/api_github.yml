@@ -1,0 +1,54 @@
+name: 'api_github'
+domain: 'api.github.com'
+protocol: 'https'
+url_prefix: ''
+headers:
+  Authorization: 'token ${get_github_access_token()}'
+  Accept: 'application/vnd.github.v3+json'
+
+doc: 'https://docs.github.com/en/rest/reference/users#get-the-authenticated-user'
+requests:
+  - name: 'create_repo'
+    title: '获取项目详情'
+    path: '/orgs/${org}/repos'
+    method: POST
+    json:
+      name: "${repo}"
+
+  - name: 'create_content'
+    title: '获取项目详情'
+    path: '/repos/${owner}/${repo}/contents/${path}'
+    doc: 'https://docs.github.com/en/rest/reference/repos#create-or-update-file-contents'
+    method: PUT
+    json:
+      message: "${message}"
+      content: "${content}"
+
+  - name: 'get_content'
+    title: '获取文件详情'
+    path: '/repos/${owner}/${repo}/contents/${path}'
+    doc: 'https://docs.github.com/en/rest/reference/repos#get-repository-content'
+    method: GET
+    params:
+      ref: 'master'
+
+  - name: 'delete_content'
+    title: '删除文件'
+    path: '/repos/${owner}/${repo}/contents/${path}'
+    doc: 'https://docs.github.com/en/rest/reference/repos#delete-a-file'
+    method: DELETE
+    json:
+      message: "${message}"
+      sha: "${sha}"
+
+  - name: 'repo_profile'
+    title: '获取项目详情'
+    path: '/repos/${owner}/${repo}/community/profile'
+
+  - name: 'repo_content'
+    title: '文件详情'
+    path: '/repos/${owner}/${repo}/contents/${path}'
+
+  - name: 'user'
+    title: '获取项目详情'
+    path: '/user'

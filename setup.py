@@ -24,10 +24,10 @@ VERSION = None
 # What packages are required for this module to be executed?
 REQUIRED = [
     # 'requests', 'maya', 'records',
-    'click>=7.0',
+    #  'click>=7.0',
     'pyperclip>=1.7.0',
-    'gevent>=1.4.0',
-    'requests>=2.21.0'
+    #  'gevent>=1.4.0',
+    #  'requests>=2.21.0'
 ]
 
 # What packages are optional?
@@ -114,7 +114,7 @@ setup(
 
     entry_points={
         'console_scripts': [
-            'goss=goss.app.upload_file:run',
+            'goss=goss.cli.command:main',
             'goss-cli=goss.app.run:run'
         ],
     },

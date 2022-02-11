@@ -6,6 +6,7 @@
 """
 
 import os
+import importlib
 
 from wpy.path import walkfile
 
@@ -44,3 +45,15 @@ def format_repo_pathes(filepath, path=None):
         pathes.append(os.path.join(dirname, _path))
     os.chdir(origin_dir)
     return pathes
+
+def load_module(module_name):
+    """加载模块"""
+    views_module = importlib.import_module(module_name)
+    return views_module
+
+
+def get_current_module_path():
+    """获取当前模块的路径"""
+    import goss as _module
+    module_path = _module.__path__[0]
+    return module_path

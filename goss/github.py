@@ -4,9 +4,6 @@
 # Description:
 
 from requests.auth import HTTPBasicAuth
-from goss.app.logger import Logger
-from goss.app.config import ConfigParser
-from goss.app import utils
 import json
 import requests
 import base64
@@ -15,6 +12,10 @@ import os
 import configparser
 import sys
 import mimetypes
+
+from goss.app.logger import Logger
+from goss.app.config import ConfigParser
+from goss.app import utils
 
 logger = Logger()
 

@@ -1,0 +1,25 @@
+name: 'www_github'
+domain: 'github.com'
+protocol: 'https'
+url_prefix: ''
+doc: 'https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing-oauth-apps'
+requests:
+
+  - name: 'oauth_authorize'
+    title: '获取项目详情'
+    path: '/login/oauth/authorize'
+    params:
+      client_id: '${GOSS_CLIENT_ID}'
+      scope: "admin:org,user,repo"
+      redirect_uri: ""
+
+  - name: 'oauth_access_token'
+    title: '获取项目详情'
+    path: '/login/oauth/access_token'
+    method: 'post'
+    headers:
+      Accept: application/json
+    params:
+      client_id: '${GOSS_CLIENT_ID}'
+      client_secret: '${GOSS_CLIENT_SECRET}'
+      code: '${code}'

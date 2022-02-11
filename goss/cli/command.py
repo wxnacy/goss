@@ -5,12 +5,16 @@
 
 """
 import sys
+import os
 
 from csarg import CommandArgumentParserFactory
 
 from goss.argument.command import CmdArgumentParser
 from goss.loggers import get_logger
 from goss.cli.run_mode import RUN_MODE
+
+from goss.utils import get_current_module_path
+from goss.utils import load_module
 
 logger = get_logger('main')
 
@@ -20,7 +24,13 @@ class Command(object):
     logger = get_logger('Command')
 
     def __init__(self, *args, **kwargs):
-        pass
+        # 动态加载参数解析器模板
+        argument_dir = os.path.join(get_current_module_path(), 'argument')
+        for name in os.listdir(argument_dir):
+            if not name.endswith('.py'):
+                continue
+            module = f'goss.argument.{name[:-3]}'
+            load_module(module)
 
     def convert_argparse(self, cmd):
         """转换参数解析器"""
