@@ -21,6 +21,10 @@ class Request():
     GET_CONTENT = 'get_content'
     DELETE_CONTENT = 'delete_content'
 
+class Command():
+    OAUTH_ACCESS_TOKEN = f'--module {Module.API_GITHUB} --name {Request.OAUTH_ACCESS_TOKEN}'
+
+
 _wush_params = { "config": Constants.CONFIG_PATH }
 print(_wush_params)
 

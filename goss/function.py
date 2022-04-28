@@ -9,8 +9,12 @@ from wush.config.function import FunctionFactory
 from wush.config.function import load_super_function
 from wush.web.response import ResponseHandler
 
-from .config import GitTypeEnum
-from .config import get_access_token
+from .config import (
+    GitTypeEnum,
+    get_access_token,
+    save_github_access_token
+)
+from .models import Github
 
 super_function = load_super_function()
 
@@ -18,6 +22,15 @@ super_function = load_super_function()
 def get_github_access_token():
     """获取 github access_token"""
     return get_access_token(GitTypeEnum.GITHUB.value)
+
+@FunctionFactory.register()
+def github_callback(code, version):
+    """获取 github access_token"""
+    res = Github().oauth_access_token(code)
+    data = res.json()
+    access_token = data.get("access_token")
+    save_github_access_token(version, access_token)
+    return data
 
 
 @ResponseHandler.register('api_github', 'get_content')

@@ -13,10 +13,15 @@ from wpy import echo
 from wush import run as run_wush
 
 from goss.constants import Constants
-from goss.models import Github
 from goss.cli.server import run_server
 from goss.config import get_access_token
 from goss.function import get_github_access_token
+from goss.models import Github
+from goss.wushtools import run_in_shell
+from goss.github.constants import (
+    CMD_OAUTH_AUTHORIZE
+)
+
 from .command import CmdArgumentParser
 from .command import CommandArgumentParserFactory
 
@@ -90,23 +95,30 @@ class LoginArgumentParser(CmdArgumentParser):
             client_secret = os.getenv('GOSS_CLIENT_SECRET')
 
         access_token = get_github_access_token()
-        if access_token:
-            echo.echo(echo.cyan('已登录!'))
-            return
+        access_token = None
+        #  if access_token:
+            #  echo.echo(echo.cyan('已登录!'))
+            #  return
 
-        p = mp.Process(target=run_server, daemon=True)
-        p.start()
-        try:
-            version = client_id
-            redirect_uri = f'http://localhost:3000/github/callback?version={version}'
-            Github().oauth_authorize(client_id, redirect_uri = redirect_uri)
-        except json.decoder.JSONDecodeError:
-            pass
+        #  p = mp.Process(target=run_server, daemon=True)
+        #  p.start()
+        #  try:
+            #  version = client_id
+            #  redirect_uri = f'http://localhost:6061/api/callback?func=github_callback&version={version}'
+            #  Github().oauth_authorize(client_id, redirect_uri = redirect_uri)
+        #  except json.decoder.JSONDecodeError:
+            #  import traceback
+            #  traceback.print_exc()
+            #  traceback.print_stack()
+            #  pass
+
+        params = f' --params client_id={client_id} --env version={client_id}'
+        run_in_shell(CMD_OAUTH_AUTHORIZE + params)
 
         while not access_token:
             access_token = get_github_access_token()
 
-        p.terminate()
+        #  p.terminate()
         echo.echo(echo.cyan('登录成功!'))
 
 

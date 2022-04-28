@@ -57,3 +57,4 @@ def get_current_module_path():
     import goss as _module
     module_path = _module.__path__[0]
     return module_path
+

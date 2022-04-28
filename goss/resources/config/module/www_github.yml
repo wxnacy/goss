@@ -6,12 +6,13 @@ doc: 'https://docs.github.com/en/developers/apps/building-oauth-apps/authorizing
 requests:
 
   - name: 'oauth_authorize'
-    title: '获取项目详情'
+    title: '登陆 github 并授权'
     path: '/login/oauth/authorize'
     params:
       client_id: '${GOSS_CLIENT_ID}'
       scope: "admin:org,user,repo"
-      redirect_uri: ""
+      # redirect_uri: ""
+      redirect_uri: "http://localhost:6061/api/callback?func=github_callback&version={version}"
 
   - name: 'oauth_access_token'
     title: '获取项目详情'
