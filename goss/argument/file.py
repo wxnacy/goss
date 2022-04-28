@@ -121,28 +121,12 @@ class FileArgumentParser(CmdArgumentParser):
             echo.echo(echo.cyan('Success!'))
 
         if args.list:
-            get_file_res = self.git.get_file(args.path)
-            print(json.dumps(get_file_res.json(), indent=4))
-
-            output = {
-                "headers": [
-                    #  { "display": "列名", 'width': '列宽度，非必传' }
-                    { "display": "文件名", 'width': 30},
-                    { "display": "路径"},
-                    { "display": "类型"},
-                ],
-                "items": [ ]
-            }
-
-            data = get_file_res.json()
-            if isinstance(data, dict):
-                data = [data]
-            for line in data:
-                op_line = (
-                    line.get("name"), line.get('path'), line.get("type"))
-                output['items'].append(op_line)
-            print_table(output)
-
+            cmd = f"wush run --module api_github --name get_content --env owner={owner} --env repo={repo}"
+            cmds = [cmd]
+            if args.path:
+                cmds.append(f"--env path={args.path}")
+            print(cmds)
+            os.system(' '.join(cmds))
 
     def upload_file(self, owner, repo, path, filepath):
         message = f"Create file {os.path.basename(filepath)}"

@@ -8,6 +8,15 @@ headers:
 
 doc: 'https://docs.github.com/en/rest/reference/users#get-the-authenticated-user'
 requests:
+  - name: 'list_repos'
+    title: '获取组织内项目列表'
+    path: '/orgs/{org}/repos'
+    doc: 'https://docs.github.com/en/rest/reference/repos#list-organization-repositories'
+    method: GET
+    params:
+      per_page: 30
+      page: 1
+
   - name: 'create_repo'
     title: '获取项目详情'
     path: '/orgs/${org}/repos'
@@ -52,3 +61,10 @@ requests:
   - name: 'user'
     title: '获取项目详情'
     path: '/user'
+
+  - name: 'search_code'
+    title: '搜索代码'
+    doc: 'https://docs.github.com/en/rest/reference/search#considerations-for-code-search'
+    path: '/search/code'
+    params:
+      q: ''
