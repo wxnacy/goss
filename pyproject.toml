@@ -9,7 +9,7 @@ license = "MIT"
 goss="goss.cli.command:main"
 
 [tool.poetry.dependencies]
-python = "^3.7"
+python = "^3.9"
 pyperclip = "^1.8.2"
 wush = "^0.2.0"
 loguru = "^0.6.0"

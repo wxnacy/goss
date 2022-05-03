@@ -1,5 +1,6 @@
 modules_include:
   - 'module/'
 function_modules:
+  - 'goss.github.handlers'
   - 'goss.function'
 server_port: 6061

@@ -11,10 +11,10 @@ from wapi import Wapi
 from goss.git import Git
 from goss.common import constants
 
-proxies = {
-    "http": "http://127.0.0.1:7890",
-    "https": "http://127.0.0.1:7890",
-}
+#  proxies = {
+    #  "http": "http://127.0.0.1:7890",
+    #  "https": "http://127.0.0.1:7890",
+#  }
 
 class Github(Git):
     domain = 'api.github.com'

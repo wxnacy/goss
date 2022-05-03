@@ -12,7 +12,7 @@ requests:
       client_id: '${GOSS_CLIENT_ID}'
       scope: "admin:org,user,repo"
       # redirect_uri: ""
-      redirect_uri: "http://localhost:6061/api/callback?func=github_callback&version={version}"
+      redirect_uri: "http://localhost:6061/api/callback?func=github_callback&version=${GOSS_CLIENT_ID}"
 
   - name: 'oauth_access_token'
     title: '获取项目详情'

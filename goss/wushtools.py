@@ -1,11 +1,10 @@
 
 import os
 from .constants import Constants
+from wush.cli import run as wush_run
 
 
-def run_in_shell(command: str):
+def run_in_shell(module: str, request: str, params: dict = None, **kwargs):
     """wush run"""
-
-    cmd = f"wush run --config {Constants.CONFIG_PATH} {command}"
-    os.system(cmd)
+    wush_run.run_in_shell( module, request, params = params, **kwargs)
 

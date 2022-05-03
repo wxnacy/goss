@@ -34,16 +34,16 @@ class Github(object):
         self.owner = owner
         self.repo = repo
 
-    def oauth_access_token(self, code, client_id=None, client_secret=None):
-        params={
-            "code": code,
-            }
-        if client_id:
-            params['client_id'] = client_id
-        if client_secret:
-            params['client_secret'] = client_secret
-        return run_wush(Module.WWW_GITHUB, Request.OAUTH_ACCESS_TOKEN,
-            params = params, **_wush_params)
+    #  def oauth_access_token(self, code, client_id=None, client_secret=None):
+        #  params={
+            #  "code": code,
+            #  }
+        #  if client_id:
+            #  params['client_id'] = client_id
+        #  if client_secret:
+            #  params['client_secret'] = client_secret
+        #  return run_wush(Module.WWW_GITHUB, Request.OAUTH_ACCESS_TOKEN,
+            #  params = params, **_wush_params)
 
     def oauth_authorize(self, client_id=None, scope=None, redirect_uri=None):
         params={ }
